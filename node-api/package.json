@@ -1,0 +1,20 @@
+{
+  "name": "eventraz-registration-api",
+  "version": "1.0.0",
+  "description": "Node.js + Express REST API for multi-user event registration.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "check": "node --check src/app.js && node --check src/auth.js && node --check src/db.js && node --check src/gmail.js && node --check src/scheduler.js && node --check src/templates.js && node --check src/routes/public.js && node --check src/routes/school.js && node --check src/routes/admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "googleapis": "^144.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.5",
+    "node-schedule": "^2.1.1"
+  }
+}
