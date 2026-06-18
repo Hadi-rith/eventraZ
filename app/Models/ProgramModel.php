@@ -8,7 +8,7 @@ class ProgramModel extends Model
 {
     protected $table = 'programs';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['program_code', 'program_name', 'start_date', 'end_date', 'status'];
+    protected $allowedFields = ['program_code', 'parent_id', 'program_name', 'start_date', 'end_date', 'status'];
     protected $useTimestamps = false;
 
     public function calculateStatus(?string $startDate, ?string $endDate): string

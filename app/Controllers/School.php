@@ -31,8 +31,10 @@ class School extends BaseController
         $formData     = $this->request->getPost();
         $programModel = new ProgramModel();
 
-        $program     = $programModel->where('program_code', $formData['programId'])->first();
-        $programName = $program ? $program['program_name'] : $formData['programId'];
+        // Use sub_program_id if selected, otherwise fall back to main program
+        $programId   = !empty($formData['subProgramId']) ? $formData['subProgramId'] : $formData['mainProgramId'];
+        $program     = $programModel->find($programId);
+        $programName = $program ? $program['program_name'] : $programId;
 
         $sekolahModel = new DaftarSekolahModel();
 
@@ -69,14 +71,41 @@ class School extends BaseController
         return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyimpan data']);
     }
 
+    // Returns only MAIN programs (parent_id IS NULL)
     public function getProgramList()
     {
         $programModel = new ProgramModel();
-        $programs     = $programModel->getActivePrograms();
+        $programs     = $programModel
+            ->where('status', 'AKTIF')
+            ->where('parent_id IS NULL', null, false)
+            ->findAll();
 
         $list = [];
         foreach ($programs as $prog) {
-            $list[] = ['id' => $prog['program_code'], 'nama' => $prog['program_name']];
+            $list[] = ['id' => $prog['id'], 'nama' => $prog['program_name']];
+        }
+
+        return $this->response
+            ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->setJSON($list);
+    }
+
+    // Returns SUB programs for a given main program id
+    public function getSubPrograms($parentId = null)
+    {
+        if (!$parentId) {
+            return $this->response->setJSON([]);
+        }
+
+        $programModel = new ProgramModel();
+        $subs = $programModel
+            ->where('parent_id', $parentId)
+            ->where('status', 'AKTIF')
+            ->findAll();
+
+        $list = [];
+        foreach ($subs as $prog) {
+            $list[] = ['id' => $prog['id'], 'nama' => $prog['program_name']];
         }
 
         return $this->response

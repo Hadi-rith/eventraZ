@@ -50,6 +50,21 @@
         .program-select, .program-select option { background: #fff !important; color: #111827 !important; }
         .eventraz-btn { background: linear-gradient(135deg, var(--maroon), var(--maroon-dark)); box-shadow: 0 18px 36px rgba(138,0,40,.2); }
         .eventraz-btn:hover { filter: brightness(1.08); }
+
+        /* Sub-program row: hidden by default, slides in */
+        #subProgramRow {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.35s ease, opacity 0.3s ease;
+        }
+        #subProgramRow.visible {
+            max-height: 120px;
+            opacity: 1;
+        }
+
+        .select-loading { opacity: 0.5; pointer-events: none; }
+
         @media (max-width: 900px) {
             body.flex { display: block; }
             .sidebar { position: relative; width: 100%; height: auto; }
@@ -96,14 +111,26 @@
             <form id="formPublic" class="space-y-6">
                 <input type="hidden" name="subKategori" id="hidSub" value="Sekolah Luar">
 
+                <!-- ── MAIN PROGRAM ── -->
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Pilihan Program *</label>
-                    <select name="programId" id="dropProg"
-                        class="program-select eventraz-field w-full p-4 border rounded-2xl outline-none text-sm transition-all" required>
-                        <option value="">-- Sila Pilih Program --</option>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Program Utama *</label>
+                    <select name="mainProgramId" id="mainProgList"
+                        class="program-select eventraz-field w-full p-4 border rounded-2xl outline-none text-sm transition-all"
+                        onchange="onMainProgramChange()" required>
+                        <option value="">-- Sila Pilih Program Utama --</option>
                     </select>
                 </div>
 
+                <!-- ── SUB PROGRAM (hidden until main chosen + has subs) ── -->
+                <div id="subProgramRow">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Sub Program *</label>
+                    <select name="subProgramId" id="subProgList"
+                        class="program-select eventraz-field w-full p-4 border rounded-2xl outline-none text-sm transition-all">
+                        <option value="">-- Sila Pilih Sub Program --</option>
+                    </select>
+                </div>
+
+                <!-- ── REST OF FORM ── -->
                 <div>
                     <label id="lblNama" class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Nama Penuh Sekolah Luar *</label>
                     <input type="text" name="namaPenuh" id="txtNama" placeholder="Masukkan nama penuh sekolah luar"
@@ -138,52 +165,90 @@
     </div>
 
     <script>
+        var hasSubPrograms = false;
+
         window.onload = function () {
-            muatSenaraiProgram();
-            window.addEventListener('focus', muatSenaraiProgram);
-            setInterval(muatSenaraiProgram, 30000);
+            muatProgramUtama();
+            window.addEventListener('focus', muatProgramUtama);
+            setInterval(muatProgramUtama, 30000);
         };
 
-        async function muatSenaraiProgram() {
+        // ── Load main programs ──
+        async function muatProgramUtama() {
             try {
-                const res = await fetch('<?= base_url('public/programs') ?>?t=' + Date.now(), { cache: 'no-store' });
+                const res  = await fetch('<?= base_url('public/programs') ?>?t=' + Date.now(), { cache: 'no-store' });
                 const list = await res.json();
-                var sel = document.getElementById('dropProg');
+                var sel      = document.getElementById('mainProgList');
                 var selected = sel.value;
 
-                sel.innerHTML = '<option value="">-- Sila Pilih Program --</option>';
+                sel.innerHTML = '<option value="">-- Sila Pilih Program Utama --</option>';
                 list.forEach(p => {
-                    var option = document.createElement('option');
-                    option.value = p.id;
-                    option.textContent = p.nama;
-                    sel.appendChild(option);
+                    var opt = document.createElement('option');
+                    opt.value       = p.id;
+                    opt.textContent = p.nama;
+                    sel.appendChild(opt);
                 });
 
-                if ([...sel.options].some(option => option.value === selected)) {
+                if ([...sel.options].some(o => o.value === selected)) {
                     sel.value = selected;
                 }
             } catch (err) {
-                console.error('Gagal memuatkan senarai program', err);
+                console.error('Gagal memuatkan senarai program utama', err);
             }
         }
 
+        // ── When main program changes, fetch sub-programs ──
+        async function onMainProgramChange() {
+            var mainId = document.getElementById('mainProgList').value;
+            var subRow = document.getElementById('subProgramRow');
+            var subSel = document.getElementById('subProgList');
+
+            subSel.innerHTML = '<option value="">-- Sila Pilih Sub Program --</option>';
+            subRow.classList.remove('visible');
+            hasSubPrograms = false;
+
+            if (!mainId) return;
+
+            try {
+                subSel.classList.add('select-loading');
+                const res  = await fetch('<?= base_url('public/subprograms') ?>/' + mainId + '?t=' + Date.now(), { cache: 'no-store' });
+                const list = await res.json();
+                subSel.classList.remove('select-loading');
+
+                if (list.length > 0) {
+                    list.forEach(p => {
+                        var opt = document.createElement('option');
+                        opt.value       = p.id;
+                        opt.textContent = p.nama;
+                        subSel.appendChild(opt);
+                    });
+                    subRow.classList.add('visible');
+                    hasSubPrograms = true;
+                }
+            } catch (err) {
+                subSel.classList.remove('select-loading');
+                console.error('Gagal memuatkan sub program', err);
+            }
+        }
+
+        // ── Switch category (Sekolah Luar / Orang Awam) ──
         function tukarKategori(kat) {
             document.getElementById('hidSub').value = kat;
             var btnLuar = document.getElementById('menuLuar');
             var btnAwam = document.getElementById('menuAwam');
 
             if (kat === 'Sekolah Luar') {
-                document.getElementById('h2Tajuk').innerText    = 'Pendaftaran Sekolah Luar (Bukan TRG)';
-                document.getElementById('lblNama').innerText    = 'Nama Penuh Sekolah Luar *';
-                document.getElementById('txtNama').placeholder = 'Masukkan nama penuh sekolah luar';
+                document.getElementById('h2Tajuk').innerText       = 'Pendaftaran Sekolah Luar (Bukan TRG)';
+                document.getElementById('lblNama').innerText        = 'Nama Penuh Sekolah Luar *';
+                document.getElementById('txtNama').placeholder      = 'Masukkan nama penuh sekolah luar';
                 document.getElementById('lblIdentiti').innerText    = 'Kod Sekolah Luar *';
                 document.getElementById('txtIdentiti').placeholder  = 'Masukkan kod sekolah';
                 btnLuar.className = 'w-full text-left p-4 text-xs font-bold active-tab flex items-center gap-3 rounded-xl transition-all shadow-md';
                 btnAwam.className = 'w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all';
             } else {
-                document.getElementById('h2Tajuk').innerText    = 'Pendaftaran Kategori Orang Awam';
-                document.getElementById('lblNama').innerText    = 'Nama Penuh Pemohon *';
-                document.getElementById('txtNama').placeholder = 'Masukkan nama penuh anda';
+                document.getElementById('h2Tajuk').innerText       = 'Pendaftaran Kategori Orang Awam';
+                document.getElementById('lblNama').innerText        = 'Nama Penuh Pemohon *';
+                document.getElementById('txtNama').placeholder      = 'Masukkan nama penuh anda';
                 document.getElementById('lblIdentiti').innerText    = 'No. Kad Pengenalan *';
                 document.getElementById('txtIdentiti').placeholder  = 'Contoh: 95010111XXXX';
                 btnLuar.className = 'w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all';
@@ -191,10 +256,25 @@
             }
         }
 
+        // ── Submit ──
         async function hantarBorang() {
+            var mainId = document.getElementById('mainProgList').value;
+            var subId  = document.getElementById('subProgList').value;
+
+            if (!mainId) {
+                Swal.fire({ icon: 'warning', title: 'Program Utama diperlukan', text: 'Sila pilih Program Utama terlebih dahulu.' });
+                return;
+            }
+
+            if (hasSubPrograms && !subId) {
+                Swal.fire({ icon: 'warning', title: 'Sub Program diperlukan', text: 'Sila pilih Sub Program untuk program ini.' });
+                return;
+            }
+
             var form   = document.getElementById('formPublic');
             var inputs = form.querySelectorAll('[required]');
             for (var inp of inputs) {
+                if (inp.name === 'subProgramId' && !hasSubPrograms) continue;
                 if (!inp.value.trim()) {
                     Swal.fire({ icon: 'warning', title: 'Borang tidak lengkap', text: 'Sila isi semua medan yang bertanda *.' });
                     inp.focus();
@@ -204,17 +284,20 @@
 
             Swal.fire({ title: 'Sila tunggu...', text: 'Sedang merekodkan pendaftaran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
+            var data = new FormData(form);
+            if (!hasSubPrograms) data.set('subProgramId', '');
+
             try {
-                const res = await fetch('<?= base_url('public/daftar') ?>', {
-                    method: 'POST',
-                    body: new FormData(form)
-                });
+                const res    = await fetch('<?= base_url('public/daftar') ?>', { method: 'POST', body: data });
                 const result = await res.json();
                 Swal.close();
 
                 if (result.success) {
                     Swal.fire({ icon: 'success', title: 'Pendaftaran Berjaya!', text: 'Maklumat anda telah selamat disimpan.' });
                     form.reset();
+                    document.getElementById('subProgList').innerHTML = '<option value="">-- Sila Pilih Sub Program --</option>';
+                    document.getElementById('subProgramRow').classList.remove('visible');
+                    hasSubPrograms = false;
                     tukarKategori('Sekolah Luar');
                 } else {
                     Swal.fire({ icon: 'error', title: 'Ralat Sistem', text: result.message });

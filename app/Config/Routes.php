@@ -31,5 +31,12 @@ $routes->post('admin/programs', 'Admin::createProgram');
 $routes->post('admin/programs/update/(:segment)', 'Admin::updateProgram/$1');
 $routes->post('admin/programs/delete/(:segment)', 'Admin::deleteProgram/$1');
 $routes->get('admin/accounts', 'Admin::getAccounts');
+$routes->post('admin/accounts/create/(:segment)', 'Admin::createAccount/$1');
 $routes->post('admin/accounts/update/(:segment)/(:num)', 'Admin::updateAccount/$1/$2');
 $routes->post('admin/accounts/delete/(:segment)/(:num)', 'Admin::deleteAccount/$1/$2');
+
+$routes->get('school/subprograms/(:num)', 'School::getSubPrograms/$1');
+$routes->get('public/subprograms/(:num)', 'PublicPortal::getSubPrograms/$1');
+
+$routes->post('admin/programs/sub', 'Admin::createSubProgram');
+$routes->get('admin/programs/sub/(:segment)', 'Admin::getSubPrograms/$1');

@@ -239,7 +239,7 @@
 
             <!-- Form Card -->
             <div class="glass-card p-8 rounded-2xl mb-8">
-                <div class="flex items-center justify-between gap-4 mb-8">
+                <div class="flex items-center justify-between gap-4 mb-6">
                     <div>
                         <h3 id="programFormTitle" class="text-lg font-black text-[#520018] uppercase tracking-wider flex items-center gap-3">
                             <i class="fa-solid fa-calendar-plus text-[#8a0028]"></i> Daftar Program Baharu
@@ -249,7 +249,31 @@
                     <span class="bg-yellow-100/80 text-[#8a0028] text-[10px] font-bold px-3 py-1 rounded-full uppercase">Database: programs</span>
                 </div>
 
-                <form id="programForm" onsubmit="daftarProgram(event)" class="grid grid-cols-12 gap-5 items-end" data-mode="create" data-original-code="">
+                <!-- Program Type Toggle -->
+                <div id="programTypeToggle" class="flex gap-3 mb-6">
+                    <button type="button" id="btnTypeUtama" onclick="setProgramType('utama')"
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-[#8a0028] bg-[#8a0028] text-white shadow transition-all">
+                        <i class="fa-solid fa-star"></i> Program Utama
+                    </button>
+                    <button type="button" id="btnTypeSub" onclick="setProgramType('sub')"
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-[#8a0028] text-[#8a0028] bg-white hover:bg-yellow-50 transition-all">
+                        <i class="fa-solid fa-sitemap"></i> Sub Program
+                    </button>
+                </div>
+
+                <!-- Parent Program selector (sub only) -->
+                <div id="parentProgramRow" class="hidden mb-5 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                    <label class="block text-[10px] font-bold text-[#8a0028] uppercase mb-2 ml-1 tracking-wider">
+                        <i class="fa-solid fa-sitemap mr-1"></i> Program Induk *
+                    </label>
+                    <select id="parentProgramSelect" name="parent_code"
+                        class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
+                        <option value="">-- Pilih Program Induk --</option>
+                    </select>
+                    <p class="text-[10px] text-slate-400 mt-1.5 ml-1">Hanya program utama (tanpa induk) boleh dipilih.</p>
+                </div>
+
+                <form id="programForm" onsubmit="daftarProgram(event)" class="grid grid-cols-12 gap-5 items-end" data-mode="create" data-original-code="" data-type="utama">
                     <div class="col-span-12 md:col-span-3">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Kod Program *</label>
                         <input type="text" id="programCode" name="program_code" maxlength="30" placeholder="CONTOH: EVZ2026"
@@ -303,6 +327,7 @@
                         <thead class="bg-slate-100 text-slate-600 uppercase font-bold border-b">
                             <tr>
                                 <th class="p-4">#</th>
+                                <th class="p-4">Jenis</th>
                                 <th class="p-4">Kod Program</th>
                                 <th class="p-4">Nama Program</th>
                                 <th class="p-4">Tarikh Mula</th>
@@ -314,7 +339,7 @@
                             </tr>
                         </thead>
                         <tbody id="tableProgramSenarai" class="divide-y text-slate-600">
-                            <tr><td colspan="9" class="p-8 text-center text-slate-400 italic">Memuatkan senarai program...</td></tr>
+                            <tr><td colspan="10" class="p-8 text-center text-slate-400 italic">Memuatkan senarai program...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -326,12 +351,22 @@
             <div class="glass-card flex justify-between items-center mb-8 p-6 rounded-2xl">
                 <div>
                     <h2 class="text-2xl font-black text-[#520018] uppercase tracking-tight">Akaun Pengguna</h2>
-                    <p class="text-xs text-slate-400 mt-1">Kemaskini atau padam akaun sekolah dan orang awam.</p>
+                    <p class="text-xs text-slate-400 mt-1">Tambah, kemaskini, padam dan reset kata laluan akaun.</p>
                 </div>
-                <button onclick="muatAkaun()"
-                    class="eventraz-btn text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
-                    <i class="fa-solid fa-rotate"></i> REFRESH AKAUN
-                </button>
+                <div class="flex flex-wrap justify-end gap-2">
+                    <button onclick="bukaBorangAkaun('school')"
+                        class="bg-white border-2 border-[#8a0028] text-[#8a0028] text-xs font-bold px-4 py-3 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-95 hover:bg-yellow-50">
+                        <i class="fa-solid fa-school"></i> TAMBAH SEKOLAH
+                    </button>
+                    <button onclick="bukaBorangAkaun('public')"
+                        class="bg-white border-2 border-[#8a0028] text-[#8a0028] text-xs font-bold px-4 py-3 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-95 hover:bg-yellow-50">
+                        <i class="fa-solid fa-user-plus"></i> TAMBAH AWAM
+                    </button>
+                    <button onclick="muatAkaun(true)"
+                        class="eventraz-btn text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
+                        <i class="fa-solid fa-rotate"></i> REFRESH
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -394,13 +429,19 @@
         window.onload = function () {
             tetapkanTarikhMinimum();
             bukaTabPermulaan();
-            muatSenaraiProgram();
+            muatSenaraiProgram().catch(function (err) {
+                console.error('Gagal memuatkan senarai program semasa muat halaman:', err);
+                Swal.fire({ icon: 'error', title: 'Ralat', text: (err && err.message) ? err.message : 'Gagal memuatkan senarai program.' });
+            });
 
-            if (getTabAktif() === 'daftar') {
+            var initialTab = getTabAktif();
+            if (initialTab === 'daftar') {
                 muatDataLive(false);
-            } else {
+            } else if (['trg', 'luar', 'awam'].includes(initialTab)) {
                 muatDataLive(true);
             }
+
+            muatAkaun(false);
         };
 
         function getTodayDate() {
@@ -471,26 +512,89 @@
         async function muatSenaraiProgram() {
             const res = await fetch('<?= base_url('admin/programs') ?>?t=' + Date.now(), { cache: 'no-store' });
             const list = await res.json();
+
+            if (!res.ok || !Array.isArray(list)) {
+                var errMsg = (list && list.message) ? list.message : ('Ralat pelayan (' + res.status + ') semasa memuatkan senarai program.');
+                console.error('Gagal memuatkan senarai program:', list);
+                throw new Error(errMsg);
+            }
+
             programCache = list;
+
+            // DEBUG: Log the list to see parent_id values
+            console.log('Program list from API:', list);
+            list.forEach(function(p) {
+                console.log('Program:', p.kod || p.id, 'parent_id:', p.parent_id, 'type:', typeof p.parent_id);
+            });
+
+            // Update filter dropdown (sidebar)
             var drop = document.getElementById('filterProgram');
             var selected = drop.value || 'SEMUA';
-
             drop.innerHTML = '<option value="SEMUA">-- SEMUA PROGRAM --</option>';
             list.forEach(p => {
                 var status = String(p.status || '').toUpperCase();
                 if (status && status !== 'AKTIF') return;
-
                 var option = document.createElement('option');
                 option.value = p.nama;
                 option.textContent = p.nama;
                 drop.appendChild(option);
             });
-
             if ([...drop.options].some(option => option.value === selected)) {
                 drop.value = selected;
             }
 
+            // Update parent program dropdown (only main programs, no parent_id)
+            var parentDrop = document.getElementById('parentProgramSelect');
+            var parentSelected = parentDrop.value || '';
+            parentDrop.innerHTML = '<option value="">-- Pilih Program Induk --</option>';
+            // Only show programs that are NOT sub-programs (parent_id is null or 0)
+            list.forEach(function(p) {
+                var parentId = p.parent_id;
+                var isMain = parentId === null || parentId === undefined || parentId === '' || parentId === 0 || parentId === '0' || parentId === 'null';
+                if (isMain) {
+                    var option = document.createElement('option');
+                    option.value = p.kod || p.id;
+                    option.textContent = (p.kod || p.id) + ' — ' + p.nama;
+                    parentDrop.appendChild(option);
+                }
+            });
+            if (parentSelected && [...parentDrop.options].some(o => o.value === parentSelected)) {
+                parentDrop.value = parentSelected;
+            }
+
             binaSenaraProgram(list);
+        }
+
+        function setProgramType(type) {
+            var form = document.getElementById('programForm');
+            form.dataset.type = type;
+
+            var btnUtama  = document.getElementById('btnTypeUtama');
+            var btnSub    = document.getElementById('btnTypeSub');
+            var parentRow = document.getElementById('parentProgramRow');
+            var title     = document.getElementById('programFormTitle');
+
+            if (type === 'utama') {
+                btnUtama.className  = 'flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-[#8a0028] bg-[#8a0028] text-white shadow transition-all';
+                btnSub.className    = 'flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-[#8a0028] text-[#8a0028] bg-white hover:bg-yellow-50 transition-all';
+                parentRow.classList.add('hidden');
+                title.innerHTML     = '<i class="fa-solid fa-star text-[#8a0028]"></i> Daftar Program Utama Baharu';
+            } else {
+                btnSub.className    = 'flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-blue-600 bg-blue-600 text-white shadow transition-all';
+                btnUtama.className  = 'flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-[#8a0028] text-[#8a0028] bg-white hover:bg-yellow-50 transition-all';
+                parentRow.classList.remove('hidden');
+                title.innerHTML     = '<i class="fa-solid fa-sitemap text-blue-600"></i> Daftar Sub Program Baharu';
+            }
+        }
+
+        function tambahSubProgram(parentKod, parentNama) {
+            // Switch to sub mode and pre-select the parent
+            setProgramType('sub');
+            var parentDrop = document.getElementById('parentProgramSelect');
+            if ([...parentDrop.options].some(o => o.value === parentKod)) {
+                parentDrop.value = parentKod;
+            }
+            document.getElementById('programForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function formatTarikh(dateStr) {
@@ -521,43 +625,100 @@
             var countEl = document.getElementById('programCount');
             if (!tbody) return;
 
-            // Sort oldest start_date first (ascending)
-            var sorted = [...list].sort((a, b) => {
-                var da = a.start_date || a.mula || '';
-                var db = b.start_date || b.mula || '';
-                return da.localeCompare(db);
+            // IMPORTANT FIX: Correctly identify main vs sub programs
+            // A program is a SUB program if parent_id has a valid value
+            var mains = [];
+            var subs = [];
+
+            list.forEach(function(p) {
+                var parentId = p.parent_id;
+                // Check if parent_id exists and has a value (not null, undefined, empty, 0, or 'null')
+                var isSub = parentId !== null && 
+                           parentId !== undefined && 
+                           parentId !== '' && 
+                           parentId !== 0 && 
+                           parentId !== '0' && 
+                           parentId !== 'null' &&
+                           parentId !== 'NULL';
+                
+                if (isSub) {
+                    subs.push(p);
+                    console.log('SUB program detected:', p.kod || p.id, 'parent_id:', parentId);
+                } else {
+                    mains.push(p);
+                    console.log('MAIN program detected:', p.kod || p.id, 'parent_id:', parentId);
+                }
             });
 
-            countEl.textContent = sorted.length + ' program';
+            // Sort mains by start_date asc
+            mains.sort((a, b) => (a.mula || a.start_date || '').localeCompare(b.mula || b.start_date || ''));
 
-            if (sorted.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-slate-400 italic">Tiada program didaftarkan lagi.</td></tr>';
+            countEl.textContent = list.length + ' program (' + mains.length + ' utama, ' + subs.length + ' sub)';
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-slate-400 italic">Tiada program didaftarkan lagi.</td></tr>';
                 return;
             }
 
-            var today = new Date(); today.setHours(0,0,0,0);
+            // Build a lookup: program_code -> program data for resolving parent
+            var codeToProgram = {};
+            list.forEach(function(p) {
+                codeToProgram[p.kod || p.id] = p;
+            });
+
+            // Also build id -> kod map for resolving parent_id
+            var idToKod = {};
+            list.forEach(function(p) {
+                if (p.db_id) idToKod[p.db_id] = p.kod || p.id;
+                // Also map by numeric id if db_id is not available
+                if (p.id && !isNaN(p.id)) idToKod[parseInt(p.id)] = p.kod || p.id;
+            });
+
+            // For each sub, resolve parent_kod if not already set
+            subs.forEach(function(s) {
+                if (!s.parent_kod && s.parent_id) {
+                    // Try to find parent by matching parent_id numeric to db_id
+                    var parentId = parseInt(s.parent_id);
+                    if (parentId && idToKod[parentId]) {
+                        s.parent_kod = idToKod[parentId];
+                    } else {
+                        // Try to find by matching parent_id to kod (string)
+                        var parentByKod = list.find(function(p) {
+                            return p.kod === String(s.parent_id) || p.id === String(s.parent_id);
+                        });
+                        if (parentByKod) {
+                            s.parent_kod = parentByKod.kod || parentByKod.id;
+                        } else {
+                            s.parent_kod = null;
+                        }
+                    }
+                }
+                console.log('Sub program:', s.kod || s.id, 'parent_kod:', s.parent_kod);
+            });
 
             tbody.innerHTML = '';
-            sorted.forEach(function(p, i) {
-                // Support both possible key names from API
-                var kod   = p.kod   || p.code || p.program_code || '—';
-                var nama  = p.nama  || p.name || p.program_name || '—';
-                var mula  = p.mula  || p.start_date || '';
-                var tamat = p.tamat || p.end_date   || '';
+            var rowNum = 0;
+
+            mains.forEach(function(p) {
+                rowNum++;
+                var kod    = p.kod   || p.id || '—';
+                var nama   = p.nama  || '—';
+                var mula   = p.mula  || p.start_date || '';
+                var tamat  = p.tamat || p.end_date   || '';
                 var status = String(p.status || '').toUpperCase();
-
-                var endDate = tamat ? new Date(tamat + 'T00:00:00') : null;
-                var isAktif = status ? status === 'AKTIF' : endDate && endDate >= today;
-
+                var isAktif = status === 'AKTIF';
                 var statusHtml = isAktif
                     ? '<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Aktif</span>'
                     : '<span class="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Tamat</span>';
-
                 var berbaki = kiraHariBerbaki(tamat);
-                var rowNum  = i + 1;
 
-                tbody.innerHTML += `<tr class="hover:bg-slate-50 transition-all">
-                    <td class="p-4 text-slate-400 font-medium">${rowNum}</td>
+                tbody.innerHTML += `<tr class="hover:bg-yellow-50/40 transition-all bg-white">
+                    <td class="p-4 text-slate-400 font-medium border-l-4 border-[#8a0028]">${rowNum}</td>
+                    <td class="p-4 border-l-0">
+                        <span class="bg-[#8a0028] text-white px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">
+                            <i class="fa-solid fa-star mr-1"></i>Utama
+                        </span>
+                    </td>
                     <td class="p-4"><span class="bg-yellow-50 text-[#8a0028] px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">${escapeHtml(kod)}</span></td>
                     <td class="p-4 font-semibold text-slate-800">${escapeHtml(nama)}</td>
                     <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(mula)}</td>
@@ -566,17 +727,119 @@
                     <td class="p-4 text-center">${statusHtml}</td>
                     <td class="p-4 text-center text-xs ${berbaki.cls}">${berbaki.label}</td>
                     <td class="p-4">
-                        <div class="flex justify-center gap-2">
+                        <div class="flex justify-center gap-2 flex-wrap">
                             <button type="button" onclick="mulaEditProgram('${escapeJs(kod)}')"
                                 class="bg-yellow-100 text-[#8a0028] w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-yellow-200 transition-all"
-                                title="Edit program">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
+                                title="Edit program"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button type="button" onclick="tambahSubProgram('${escapeJs(kod)}', '${escapeJs(nama)}')"
+                                class="bg-blue-100 text-blue-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-blue-200 transition-all"
+                                title="Tambah sub program"><i class="fa-solid fa-sitemap"></i></button>
                             <button type="button" onclick="padamProgram('${escapeJs(kod)}', '${escapeJs(nama)}')"
                                 class="bg-red-100 text-red-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-red-200 transition-all"
-                                title="Padam program">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                                title="Padam program"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+
+                // Find children: subs whose parent matches this program
+                var children = subs.filter(function(s) {
+                    // Check if parent_kod matches this program's kod
+                    var parentMatch = s.parent_kod && s.parent_kod === kod;
+                    // Check if parent_id matches this program's db_id
+                    var idMatch = false;
+                    if (p.db_id && s.parent_id) {
+                        idMatch = parseInt(s.parent_id) === parseInt(p.db_id);
+                    }
+                    // Check if parent_id matches this program's kod (string)
+                    var kodMatch = s.parent_id && String(s.parent_id) === kod;
+                    // Check if parent_id matches this program's id
+                    var idStringMatch = s.parent_id && String(s.parent_id) === p.id;
+                    return parentMatch || idMatch || kodMatch || idStringMatch;
+                });
+
+                children.forEach(function(s) {
+                    var skod   = s.kod   || s.id || '—';
+                    var snama  = s.nama  || '—';
+                    var smula  = s.mula  || s.start_date || '';
+                    var stamat = s.tamat || s.end_date   || '';
+                    var sstatus = String(s.status || '').toUpperCase();
+                    var sisAktif = sstatus === 'AKTIF';
+                    var sstatusHtml = sisAktif
+                        ? '<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Aktif</span>'
+                        : '<span class="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Tamat</span>';
+                    var sberbaki = kiraHariBerbaki(stamat);
+
+                    tbody.innerHTML += `<tr class="hover:bg-blue-50/40 transition-all bg-blue-50/20">
+                        <td class="p-4 text-slate-300 font-medium pl-8 border-l-4 border-blue-300">↳</td>
+                        <td class="p-4">
+                            <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider whitespace-nowrap">
+                                <i class="fa-solid fa-sitemap mr-1"></i>Sub
+                            </span>
+                        </td>
+                        <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">${escapeHtml(skod)}</span></td>
+                        <td class="p-4 font-medium text-slate-700 pl-2">${escapeHtml(snama)}</td>
+                        <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(smula)}</td>
+                        <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(stamat)}</td>
+                        <td class="p-4 text-slate-500">${kiraTempoh(smula, stamat)}</td>
+                        <td class="p-4 text-center">${sstatusHtml}</td>
+                        <td class="p-4 text-center text-xs ${sberbaki.cls}">${sberbaki.label}</td>
+                        <td class="p-4">
+                            <div class="flex justify-center gap-2">
+                                <button type="button" onclick="mulaEditProgram('${escapeJs(skod)}')"
+                                    class="bg-yellow-100 text-[#8a0028] w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-yellow-200 transition-all"
+                                    title="Edit sub program"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button type="button" onclick="padamProgram('${escapeJs(skod)}', '${escapeJs(snama)}')"
+                                    class="bg-red-100 text-red-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-red-200 transition-all"
+                                    title="Padam sub program"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+            });
+
+            // Orphaned subs (parent not in current list — edge case)
+            var orphans = subs.filter(function(s) {
+                var hasParent = mains.some(function(m) {
+                    var mKod = m.kod || m.id;
+                    var mDbId = m.db_id;
+                    if (s.parent_kod && s.parent_kod === mKod) return true;
+                    if (s.parent_id && mDbId && parseInt(s.parent_id) === parseInt(mDbId)) return true;
+                    if (s.parent_id && String(s.parent_id) === mKod) return true;
+                    if (s.parent_id && String(s.parent_id) === m.id) return true;
+                    return false;
+                });
+                return !hasParent;
+            });
+
+            orphans.forEach(function(s) {
+                var skod   = s.kod   || s.id || '—';
+                var snama  = s.nama  || '—';
+                var smula  = s.mula  || s.start_date || '';
+                var stamat = s.tamat || s.end_date   || '';
+                var sstatus = String(s.status || '').toUpperCase();
+                var sstatusHtml = sstatus === 'AKTIF'
+                    ? '<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Aktif</span>'
+                    : '<span class="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Tamat</span>';
+                var sberbaki = kiraHariBerbaki(stamat);
+
+                tbody.innerHTML += `<tr class="hover:bg-blue-50/40 transition-all bg-blue-50/20">
+                    <td class="p-4 text-slate-300 border-l-4 border-blue-300">—</td>
+                    <td class="p-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider whitespace-nowrap"><i class="fa-solid fa-sitemap mr-1"></i>Sub</span></td>
+                    <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">${escapeHtml(skod)}</span></td>
+                    <td class="p-4 font-medium text-slate-700">${escapeHtml(snama)}</td>
+                    <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(smula)}</td>
+                    <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(stamat)}</td>
+                    <td class="p-4 text-slate-500">${kiraTempoh(smula, stamat)}</td>
+                    <td class="p-4 text-center">${sstatusHtml}</td>
+                    <td class="p-4 text-center text-xs ${sberbaki.cls}">${sberbaki.label}</td>
+                    <td class="p-4">
+                        <div class="flex justify-center gap-2">
+                            <button type="button" onclick="mulaEditProgram('${escapeJs(skod)}')"
+                                class="bg-yellow-100 text-[#8a0028] w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-yellow-200 transition-all"
+                                title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button type="button" onclick="padamProgram('${escapeJs(skod)}', '${escapeJs(snama)}')"
+                                class="bg-red-100 text-red-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-red-200 transition-all"
+                                title="Padam"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>`;
@@ -608,39 +871,49 @@
                 return;
             }
 
+            var programType = form.dataset.type || 'utama';
+            var parentCode  = document.getElementById('parentProgramSelect').value.trim();
+
+            // Validate parent selection for sub program
+            if (programType === 'sub' && !parentCode && form.dataset.mode !== 'edit') {
+                Swal.fire({ icon: 'warning', title: 'Program induk diperlukan', text: 'Sila pilih program induk untuk sub program ini.' });
+                return;
+            }
+
             btn.disabled = true;
             btn.classList.add('opacity-60', 'cursor-not-allowed');
 
             try {
-                var isEdit = form.dataset.mode === 'edit';
+                var isEdit       = form.dataset.mode === 'edit';
                 var originalCode = form.dataset.originalCode || programCode;
-                var url = isEdit
-                    ? '<?= base_url('admin/programs/update') ?>/' + encodeURIComponent(originalCode)
-                    : '<?= base_url('admin/programs') ?>';
 
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        program_code: programCode,
-                        program_name: programName,
-                        start_date: startDate,
-                        end_date: endDate
-                    })
-                });
+                var url, body;
+
+                if (isEdit) {
+                    url  = '<?= base_url('admin/programs/update') ?>/' + encodeURIComponent(originalCode);
+                    body = new URLSearchParams({ program_code: programCode, program_name: programName, start_date: startDate, end_date: endDate });
+                } else if (programType === 'sub') {
+                    url  = '<?= base_url('admin/programs/sub') ?>';
+                    body = new URLSearchParams({ parent_code: parentCode, program_code: programCode, program_name: programName, start_date: startDate, end_date: endDate });
+                } else {
+                    url  = '<?= base_url('admin/programs') ?>';
+                    body = new URLSearchParams({ program_code: programCode, program_name: programName, start_date: startDate, end_date: endDate });
+                }
+
+                const res    = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
                 const result = await res.json();
 
                 if (result.success) {
                     resetProgramForm();
                     await muatSenaraiProgram();
                     Swal.fire({ icon: 'success', title: 'Berjaya', text: result.message, timer: 1600, showConfirmButton: false });
-                    // Scroll to program list so admin can see the newly added entry
                     document.getElementById('tableProgramSenarai').closest('.glass-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else {
                     Swal.fire({ icon: 'error', title: 'Gagal', text: result.message || 'Program tidak dapat disimpan.' });
                 }
             } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Ralat Sambungan', text: 'Gagal menghantar data program ke pelayan.' });
+                console.error('daftarProgram error:', err);
+                Swal.fire({ icon: 'error', title: 'Ralat', text: (err && err.message) ? err.message : 'Gagal menghantar data program ke pelayan.' });
             } finally {
                 btn.disabled = false;
                 btn.classList.remove('opacity-60', 'cursor-not-allowed');
@@ -660,12 +933,30 @@
             var form = document.getElementById('programForm');
             form.dataset.mode = 'edit';
             form.dataset.originalCode = programCode;
+            
+            // Determine if this is a sub program
+            var parentId = program.parent_id;
+            var isSub = parentId !== null && 
+                       parentId !== undefined && 
+                       parentId !== '' && 
+                       parentId !== 0 && 
+                       parentId !== '0' && 
+                       parentId !== 'null' &&
+                       parentId !== 'NULL';
+            form.dataset.type = isSub ? 'sub' : 'utama';
 
-            document.getElementById('programCode').value = program.kod || program.id || program.program_code || '';
-            document.getElementById('programName').value = program.nama || program.name || program.program_name || '';
+            document.getElementById('programCode').value = program.kod || program.id || '';
+            document.getElementById('programName').value = program.nama || program.name || '';
             document.getElementById('startDate').value = program.mula || program.start_date || '';
             document.getElementById('endDate').value = program.tamat || program.end_date || '';
-            document.getElementById('programFormTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-[#8a0028]"></i> Edit Program';
+
+            // Hide type toggle during edit — type cannot change
+            document.getElementById('programTypeToggle').style.display = 'none';
+            document.getElementById('parentProgramRow').classList.add('hidden');
+
+            document.getElementById('programFormTitle').innerHTML = isSub
+                ? '<i class="fa-solid fa-pen-to-square text-blue-600"></i> Edit Sub Program'
+                : '<i class="fa-solid fa-pen-to-square text-[#8a0028]"></i> Edit Program Utama';
             document.getElementById('btnDaftarProgram').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> KEMASKINI PROGRAM';
             document.getElementById('btnBatalEditProgram').style.display = '';
             kemasKiniStatusPreview();
@@ -677,9 +968,11 @@
             form.reset();
             form.dataset.mode = 'create';
             form.dataset.originalCode = '';
-            document.getElementById('programFormTitle').innerHTML = '<i class="fa-solid fa-calendar-plus text-[#8a0028]"></i> Daftar Program Baharu';
             document.getElementById('btnDaftarProgram').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> SIMPAN PROGRAM';
             document.getElementById('btnBatalEditProgram').style.display = 'none';
+            document.getElementById('programTypeToggle').style.display = '';
+            document.getElementById('parentProgramSelect').value = '';
+            setProgramType('utama');
             kemasKiniStatusPreview();
         }
 
@@ -711,7 +1004,282 @@
                     Swal.fire({ icon: 'error', title: 'Gagal', text: result.message || 'Program tidak dapat dipadam.' });
                 }
             } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Ralat Sambungan', text: 'Gagal memadam program.' });
+                console.error('padamProgram error:', err);
+                Swal.fire({ icon: 'error', title: 'Ralat', text: (err && err.message) ? err.message : 'Gagal memadam program.' });
+            }
+        }
+
+        async function muatAkaun(showLoading = true) {
+            var schoolBody = document.getElementById('tableSchoolAccounts');
+            var publicBody = document.getElementById('tablePublicAccounts');
+
+            if (showLoading) {
+                Swal.fire({ title: 'Memuatkan akaun...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            }
+
+            try {
+                const res = await fetch('<?= base_url('admin/accounts') ?>?t=' + Date.now(), { cache: 'no-store' });
+                const result = await res.json();
+
+                if (showLoading) {
+                    Swal.close();
+                }
+
+                if (!res.ok || !result.success) {
+                    throw new Error((result && result.message) ? result.message : 'Senarai akaun tidak dapat dimuatkan.');
+                }
+
+                accountCache = {
+                    school: Array.isArray(result.school) ? result.school : [],
+                    public: Array.isArray(result.public) ? result.public : []
+                };
+                binaJadualAkaun();
+            } catch (err) {
+                if (showLoading) {
+                    Swal.close();
+                    Swal.fire({ icon: 'error', title: 'Ralat', text: (err && err.message) ? err.message : 'Gagal memuatkan akaun.' });
+                }
+                schoolBody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-red-500 italic">Gagal memuatkan akaun sekolah.</td></tr>';
+                publicBody.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-red-500 italic">Gagal memuatkan akaun awam.</td></tr>';
+            }
+        }
+
+        function binaJadualAkaun() {
+            var schoolBody = document.getElementById('tableSchoolAccounts');
+            var publicBody = document.getElementById('tablePublicAccounts');
+            var schoolCount = document.getElementById('schoolAccountCount');
+            var publicCount = document.getElementById('publicAccountCount');
+
+            schoolCount.textContent = accountCache.school.length + ' akaun';
+            publicCount.textContent = accountCache.public.length + ' akaun';
+
+            if (accountCache.school.length === 0) {
+                schoolBody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Tiada akaun sekolah ditemui.</td></tr>';
+            } else {
+                schoolBody.innerHTML = accountCache.school.map(function(account) {
+                    return `<tr class="hover:bg-slate-50 transition-all">
+                        <td class="p-4 font-black text-[#8a0028] uppercase whitespace-nowrap">${escapeHtml(account.school_code)}</td>
+                        <td class="p-4 font-semibold text-slate-800">${escapeHtml(account.school_name)}</td>
+                        <td class="p-4 text-slate-500">${escapeHtml(account.email || '—')}</td>
+                        <td class="p-4">
+                            <div class="flex justify-center gap-2">
+                                <button type="button" onclick="bukaBorangAkaun('school', ${Number(account.id)})"
+                                    class="bg-yellow-100 text-[#8a0028] w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-yellow-200 transition-all"
+                                    title="Edit akaun"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button type="button" onclick="bukaResetPassword('school', ${Number(account.id)})"
+                                    class="bg-blue-100 text-blue-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-blue-200 transition-all"
+                                    title="Reset kata laluan"><i class="fa-solid fa-key"></i></button>
+                                <button type="button" onclick="padamAkaun('school', ${Number(account.id)})"
+                                    class="bg-red-100 text-red-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-red-200 transition-all"
+                                    title="Padam akaun"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+
+            if (accountCache.public.length === 0) {
+                publicBody.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-slate-400 italic">Tiada akaun awam ditemui.</td></tr>';
+            } else {
+                publicBody.innerHTML = accountCache.public.map(function(account) {
+                    return `<tr class="hover:bg-slate-50 transition-all">
+                        <td class="p-4 font-semibold text-slate-800">${escapeHtml(account.name)}</td>
+                        <td class="p-4 text-slate-500">${escapeHtml(account.email)}</td>
+                        <td class="p-4">
+                            <div class="flex justify-center gap-2">
+                                <button type="button" onclick="bukaBorangAkaun('public', ${Number(account.id)})"
+                                    class="bg-yellow-100 text-[#8a0028] w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-yellow-200 transition-all"
+                                    title="Edit akaun"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button type="button" onclick="bukaResetPassword('public', ${Number(account.id)})"
+                                    class="bg-blue-100 text-blue-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-blue-200 transition-all"
+                                    title="Reset kata laluan"><i class="fa-solid fa-key"></i></button>
+                                <button type="button" onclick="padamAkaun('public', ${Number(account.id)})"
+                                    class="bg-red-100 text-red-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-red-200 transition-all"
+                                    title="Padam akaun"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        function cariAkaun(type, id) {
+            var list = type === 'school' ? accountCache.school : accountCache.public;
+            return list.find(function(account) {
+                return Number(account.id) === Number(id);
+            }) || null;
+        }
+
+        async function bukaBorangAkaun(type, id = null) {
+            var isEdit = id !== null;
+            var account = isEdit ? cariAkaun(type, id) : null;
+
+            if (isEdit && !account) {
+                Swal.fire({ icon: 'error', title: 'Akaun tidak ditemui', text: 'Sila refresh senarai akaun.' });
+                return;
+            }
+
+            var isSchool = type === 'school';
+            var title = (isEdit ? 'Kemaskini ' : 'Tambah ') + (isSchool ? 'Akaun Sekolah' : 'Akaun Awam');
+            var html = isSchool
+                ? `<div class="text-left space-y-3">
+                    <input id="swalSchoolCode" class="swal2-input" style="width:100%;margin:0;" placeholder="Kod sekolah" value="${escapeHtml(account ? account.school_code : '')}">
+                    <input id="swalSchoolName" class="swal2-input" style="width:100%;margin:0;" placeholder="Nama sekolah" value="${escapeHtml(account ? account.school_name : '')}">
+                    <input id="swalAccountEmail" class="swal2-input" style="width:100%;margin:0;" placeholder="Emel" value="${escapeHtml(account ? (account.email || '') : '')}">
+                    <input id="swalAccountPassword" class="swal2-input" style="width:100%;margin:0;" type="password" placeholder="${isEdit ? 'Kata laluan baharu (biarkan kosong jika tidak ubah)' : 'Kata laluan'}">
+                </div>`
+                : `<div class="text-left space-y-3">
+                    <input id="swalPublicName" class="swal2-input" style="width:100%;margin:0;" placeholder="Nama penuh" value="${escapeHtml(account ? account.name : '')}">
+                    <input id="swalAccountEmail" class="swal2-input" style="width:100%;margin:0;" placeholder="Emel" value="${escapeHtml(account ? account.email : '')}">
+                    <input id="swalAccountPassword" class="swal2-input" style="width:100%;margin:0;" type="password" placeholder="${isEdit ? 'Kata laluan baharu (biarkan kosong jika tidak ubah)' : 'Kata laluan'}">
+                </div>`;
+
+            var modal = await Swal.fire({
+                title: title,
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: isEdit ? 'Simpan' : 'Cipta',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#8a0028',
+                focusConfirm: false,
+                preConfirm: function() {
+                    var payload = isSchool
+                        ? {
+                            school_code: document.getElementById('swalSchoolCode').value.trim().toUpperCase(),
+                            school_name: document.getElementById('swalSchoolName').value.trim(),
+                            email: document.getElementById('swalAccountEmail').value.trim().toLowerCase(),
+                            password: document.getElementById('swalAccountPassword').value.trim()
+                        }
+                        : {
+                            name: document.getElementById('swalPublicName').value.trim(),
+                            email: document.getElementById('swalAccountEmail').value.trim().toLowerCase(),
+                            password: document.getElementById('swalAccountPassword').value.trim()
+                        };
+
+                    if (isSchool && (!payload.school_code || !payload.school_name || !payload.email)) {
+                        Swal.showValidationMessage('Kod sekolah, nama sekolah dan emel diperlukan.');
+                        return false;
+                    }
+
+                    if (!isSchool && (!payload.name || !payload.email)) {
+                        Swal.showValidationMessage('Nama dan emel diperlukan.');
+                        return false;
+                    }
+
+                    if (!isEdit && !payload.password) {
+                        Swal.showValidationMessage('Kata laluan diperlukan untuk akaun baharu.');
+                        return false;
+                    }
+
+                    return payload;
+                }
+            });
+
+            if (!modal.isConfirmed) return;
+
+            await hantarAkaun(type, id, modal.value);
+        }
+
+        async function bukaResetPassword(type, id) {
+            var account = cariAkaun(type, id);
+            if (!account) {
+                Swal.fire({ icon: 'error', title: 'Akaun tidak ditemui', text: 'Sila refresh senarai akaun.' });
+                return;
+            }
+
+            var label = type === 'school' ? account.school_name : account.name;
+            var modal = await Swal.fire({
+                title: 'Reset Kata Laluan',
+                text: label,
+                input: 'password',
+                inputPlaceholder: 'Kata laluan baharu',
+                inputAttributes: { autocapitalize: 'off', autocomplete: 'new-password' },
+                showCancelButton: true,
+                confirmButtonText: 'Reset',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#8a0028',
+                preConfirm: function(value) {
+                    if (!value || !value.trim()) {
+                        Swal.showValidationMessage('Masukkan kata laluan baharu.');
+                        return false;
+                    }
+                    return value.trim();
+                }
+            });
+
+            if (!modal.isConfirmed) return;
+
+            var payload = type === 'school'
+                ? {
+                    school_code: account.school_code,
+                    school_name: account.school_name,
+                    email: account.email || '',
+                    password: modal.value
+                }
+                : {
+                    name: account.name,
+                    email: account.email,
+                    password: modal.value
+                };
+
+            await hantarAkaun(type, id, payload);
+        }
+
+        async function hantarAkaun(type, id, payload) {
+            var isEdit = id !== null && id !== undefined;
+            var url = isEdit
+                ? '<?= base_url('admin/accounts/update') ?>/' + encodeURIComponent(type) + '/' + encodeURIComponent(id)
+                : '<?= base_url('admin/accounts/create') ?>/' + encodeURIComponent(type);
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(payload)
+                });
+                const result = await res.json();
+
+                if (!res.ok || !result.success) {
+                    throw new Error((result && result.message) ? result.message : 'Akaun tidak dapat disimpan.');
+                }
+
+                await muatAkaun(false);
+                Swal.fire({ icon: 'success', title: 'Berjaya', text: result.message, timer: 1600, showConfirmButton: false });
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: (err && err.message) ? err.message : 'Akaun tidak dapat disimpan.' });
+            }
+        }
+
+        async function padamAkaun(type, id) {
+            var account = cariAkaun(type, id);
+            var label = account ? (type === 'school' ? account.school_name : account.name) : 'akaun ini';
+            var confirm = await Swal.fire({
+                icon: 'warning',
+                title: 'Padam akaun?',
+                text: label + ' akan dipadam.',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, padam',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc2626'
+            });
+
+            if (!confirm.isConfirmed) return;
+
+            try {
+                const res = await fetch('<?= base_url('admin/accounts/delete') ?>/' + encodeURIComponent(type) + '/' + encodeURIComponent(id), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                });
+                const result = await res.json();
+
+                if (!res.ok || !result.success) {
+                    throw new Error((result && result.message) ? result.message : 'Akaun tidak dapat dipadam.');
+                }
+
+                await muatAkaun(false);
+                Swal.fire({ icon: 'success', title: 'Berjaya', text: result.message, timer: 1600, showConfirmButton: false });
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: (err && err.message) ? err.message : 'Akaun tidak dapat dipadam.' });
             }
         }
 
@@ -734,12 +1302,16 @@
                     document.getElementById('statAwam').innerText = result.orangAwam.length;
                     tapisSemuaData();
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Ralat', text: result.message });
+                    console.error('muatDataLive gagal:', result);
+                    if (showLoading) {
+                        Swal.fire({ icon: 'error', title: 'Ralat', text: result.message });
+                    }
                 }
             } catch (err) {
+                console.error('muatDataLive error:', err);
                 if (showLoading) {
                     Swal.close();
-                    Swal.fire({ icon: 'error', title: 'Ralat Sambungan', text: 'Gagal mendapatkan data dari pengkalan data.' });
+                    Swal.fire({ icon: 'error', title: 'Ralat Sambungan', text: (err && err.message) ? err.message : 'Gagal mendapatkan data dari pengkalan data.' });
                 }
             }
         }
@@ -877,12 +1449,16 @@
                 btn.classList.remove('text-yellow-100', 'hover:bg-white/10');
             }
 
-            // Show/hide data-only elements when on Daftar Program tab
             var isDaftar = tabId === 'daftar';
-            document.getElementById('data-header').style.display    = isDaftar ? 'none' : '';
-            document.getElementById('stat-cards').style.display     = isDaftar ? 'none' : '';
-            document.getElementById('data-tables').style.display    = isDaftar ? 'none' : '';
+            var isDataTab = ['trg', 'luar', 'awam'].includes(tabId);
+            document.getElementById('data-header').style.display    = isDataTab ? '' : 'none';
+            document.getElementById('stat-cards').style.display     = isDataTab ? '' : 'none';
+            document.getElementById('data-tables').style.display    = isDataTab ? '' : 'none';
             document.getElementById('daftar-header').style.display  = isDaftar ? '' : 'none';
+
+            if (tabId === 'akaun') {
+                muatAkaun(false);
+            }
 
             localStorage.setItem('adminDashboardTab', tabId);
             var url = new URL(window.location.href);
@@ -898,7 +1474,7 @@
         function bukaTabPermulaan() {
             var params = new URLSearchParams(window.location.search);
             var tab = params.get('tab') || localStorage.getItem('adminDashboardTab') || 'daftar';
-            var validTabs = ['daftar', 'trg', 'luar', 'awam'];
+            var validTabs = ['daftar', 'trg', 'luar', 'awam', 'akaun'];
 
             if (!validTabs.includes(tab)) {
                 tab = 'daftar';
