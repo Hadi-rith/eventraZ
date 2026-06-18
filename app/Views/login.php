@@ -1,319 +1,520 @@
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EventraZ - Log Masuk</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --maroon: #8a0028; --maroon-dark: #520018; --gold: #ffc20e; --ink: #231f20; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: 'Poppins', sans-serif;
-            background:
-                radial-gradient(circle at 18% 18%, rgba(255, 194, 14, 0.28), transparent 28%),
-                radial-gradient(circle at 82% 8%, rgba(138, 0, 40, 0.25), transparent 30%),
-                linear-gradient(135deg, #fffaf0 0%, #f8edf1 48%, #fff8df 100%);
+            background: linear-gradient(135deg, #fffaf0 0%, #f8edf1 50%, #fff8df 100%);
+            padding: 2rem;
         }
-        .login-card {
-            background: rgba(255, 255, 255, 0.58);
-            border: 1px solid rgba(255, 255, 255, 0.78);
-            border-radius: 42px;
-            box-shadow: 0 28px 80px rgba(82, 0, 24, 0.18), inset 0 1px 0 rgba(255,255,255,.85);
-            backdrop-filter: blur(28px) saturate(165%);
-            -webkit-backdrop-filter: blur(28px) saturate(165%);
+
+        .card {
+            background: #ffffff;
+            border: 1px solid rgba(138, 0, 40, 0.1);
+            border-radius: 28px;
+            padding: 2.5rem 2rem 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(82, 0, 24, 0.12);
+            text-align: center;
         }
-        .brand-logo {
-            width: 280px;
-            max-width: 88%;
-            margin: 0 auto 1.25rem;
-            background: #fff;
-            border-radius: 34px;
-            padding: 8px;
-            filter: drop-shadow(0 18px 24px rgba(82, 0, 24, .12));
+
+        /* Logo */
+        .logo-wrap { margin-bottom: 1.75rem; }
+        .logo-wrap img {
+            width: 110px;
+            height: 110px;
+            border-radius: 24px;
+            object-fit: cover;
+            box-shadow: 0 10px 28px rgba(82, 0, 24, 0.15);
+            display: block;
+            margin: 0 auto;
         }
-        .tab-shell, .mode-shell {
-            background: rgba(255,255,255,.36);
-            border: 1px solid rgba(138,0,40,.1);
-            border-radius: 26px;
-            padding: 5px;
+        .logo-wrap h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #1a1a1a;
+            margin-top: 12px;
         }
-        .tab-btn, .mode-btn { border-radius: 20px; transition: all .25s ease; }
-        .tab-active, .mode-active { background: rgba(255, 194, 14, .72); color: var(--maroon); font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,.8); }
-        .liquid-input { background: rgba(255,255,255,.68); border-color: rgba(138,0,40,.14); border-radius: 24px; color: #111827; }
-        .liquid-input:focus { box-shadow: 0 0 0 3px rgba(255,194,14,.28); }
-        .primary-btn { background: linear-gradient(135deg, var(--maroon), var(--maroon-dark)); border-radius: 24px; box-shadow: 0 18px 36px rgba(138,0,40,.22); }
-        .primary-btn:hover { filter: brightness(1.08); }
-        .secondary-btn { border-radius: 24px; }
-        .soft-divider { height: 1px; border-radius: 999px; background: rgba(138,0,40,.12); }
-        .form-panel { display: none; }
-        .form-panel.active { display: block; }
+        .logo-wrap p {
+            font-size: 10px;
+            color: #888888;
+            letter-spacing: 0.18em;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        /* Role underline tabs */
+        .role-tabs {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            border-bottom: 1.5px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+        }
+        .role-tabs button {
+            background: none;
+            border: none;
+            padding: 0 0 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #aaaaaa;
+            cursor: pointer;
+            position: relative;
+            font-family: 'Poppins', sans-serif;
+            transition: color 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+        .role-tabs button:hover { color: #8a0028; }
+        .role-tabs button.active { color: #8a0028; }
+        .role-tabs button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1.5px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #8a0028;
+            border-radius: 99px;
+        }
+
+        /* Fields */
+        .field { margin-bottom: 1rem; text-align: left; }
+        .field label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: #555555;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 5px;
+        }
+        .inp-wrap { position: relative; }
+        .inp-wrap i {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaaaaa;
+            font-size: 13px;
+            pointer-events: none;
+        }
+        .inp-wrap input {
+            width: 100%;
+            padding: 11px 13px 11px 38px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 13px;
+            font-size: 13px;
+            color: #1a1a1a;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .inp-wrap input::placeholder { color: #bbbbbb; }
+        .inp-wrap input:focus {
+            border-color: rgba(138, 0, 40, 0.35);
+            box-shadow: 0 0 0 3px rgba(255, 194, 14, 0.25);
+            background: #ffffff;
+        }
+
+        /* Primary button */
+        .btn-main {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #8a0028, #520018);
+            color: #ffffff;
+            border: none;
+            border-radius: 13px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 0.25rem;
+            transition: filter 0.2s, transform 0.1s;
+            letter-spacing: 0.04em;
+        }
+        .btn-main:hover { filter: brightness(1.1); }
+        .btn-main:active { transform: scale(0.98); }
+
+        /* Text link */
+        .text-link {
+            text-align: center;
+            margin-top: 1.25rem;
+            font-size: 12px;
+            color: #777777;
+        }
+        .text-link a {
+            color: #8a0028;
+            font-weight: 700;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .text-link a:hover { color: #520018; }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 1.5rem 0 1rem;
+        }
+        .div-line { flex: 1; height: 1px; background: #e5e7eb; border-radius: 99px; }
+        .divider span {
+            font-size: 10px;
+            font-weight: 700;
+            color: #aaaaaa;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        /* Admin button */
+        .btn-admin {
+            width: 100%;
+            padding: 11px;
+            background: #fffdf5;
+            border: 1.5px solid #ffc20e;
+            color: #8a0028;
+            border-radius: 13px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-admin:hover { background: #fff8d6; }
+        .btn-admin:active { transform: scale(0.98); }
+
+        /* Panels */
+        .panel { display: none; }
+        .panel.active { display: block; }
     </style>
 </head>
-<body class="flex items-center justify-center p-6">
-    <div class="login-card p-8 md:p-10 w-full max-w-md text-center">
-        <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ" class="brand-logo">
-        <h2 class="text-3xl font-black text-slate-800">EventraZ</h2>
-        <p class="text-[11px] text-slate-400 mb-6 uppercase tracking-[0.2em] font-bold">Portal Log Masuk Rasmi</p>
+<body>
 
-        <div class="tab-shell flex mb-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-            <button onclick="setRole('school')" id="tabSchool" class="flex-1 py-3 tab-btn tab-active">
-                <i class="fa-solid fa-school mr-1"></i> Sekolah
-            </button>
-            <button onclick="setRole('awam')" id="tabAwam" class="flex-1 py-3 tab-btn">
-                <i class="fa-solid fa-user-group mr-1"></i> Awam
-            </button>
-        </div>
-
-        <div id="userModes" class="mode-shell flex mb-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            <button onclick="setMode('login')" id="modeLogin" class="flex-1 py-2.5 mode-btn mode-active">Log Masuk</button>
-            <button onclick="setMode('signup')" id="modeSignup" class="flex-1 py-2.5 mode-btn">Daftar Akaun</button>
-        </div>
-
-        <div id="loginPanel" class="form-panel active space-y-5 text-left">
-            <div>
-                <label id="lblUser" class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Kod Sekolah / Emel *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i id="iconUser" class="fa-solid fa-address-card"></i>
-                    </span>
-                    <input type="text" id="user" placeholder="Masukkan Kod Sekolah atau Emel"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none transition-all">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Kata Laluan *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-lock"></i>
-                    </span>
-                    <input type="password" id="pass" placeholder="Kata Laluan"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none transition-all">
-                </div>
-            </div>
-
-            <button onclick="doLogin()" class="primary-btn w-full text-white font-bold py-4 text-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
-                <i class="fa-solid fa-right-to-bracket"></i> LOG MASUK
-            </button>
-        </div>
-
-        <form id="signupSchoolPanel" class="form-panel space-y-4 text-left" onsubmit="doSignup(event)">
-            <input type="hidden" name="signupRole" value="school">
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Nama Sekolah *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-school"></i>
-                    </span>
-                    <input name="school_name" type="text" placeholder="Nama Sekolah"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none">
-                </div>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Kod Sekolah *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-address-card"></i>
-                    </span>
-                    <input name="school_code" type="text" placeholder="Kod Sekolah"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none uppercase">
-                </div>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Emel Sekolah *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-envelope"></i>
-                    </span>
-                    <input name="email" type="email" placeholder="Emel Sekolah"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none">
-                </div>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Kata Laluan *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-lock"></i>
-                    </span>
-                    <input name="password" type="password" placeholder="Kata Laluan"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none">
-                </div>
-            </div>
-            <button type="submit" class="primary-btn w-full text-white font-bold py-4 text-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
-                <i class="fa-solid fa-user-plus"></i> DAFTAR SEKOLAH
-            </button>
-        </form>
-
-        <form id="signupAwamPanel" class="form-panel space-y-4 text-left" onsubmit="doSignup(event)">
-            <input type="hidden" name="signupRole" value="awam">
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Nama Penuh *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-user"></i>
-                    </span>
-                    <input name="name" type="text" placeholder="Nama Penuh"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none">
-                </div>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Emel *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-envelope"></i>
-                    </span>
-                    <input name="email" type="email" placeholder="Emel"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none">
-                </div>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Kata Laluan *</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                        <i class="fa-solid fa-lock"></i>
-                    </span>
-                    <input name="password" type="password" placeholder="Kata Laluan"
-                        class="liquid-input w-full pl-12 pr-4 py-4 border text-sm outline-none">
-                </div>
-            </div>
-            <button type="submit" class="primary-btn w-full text-white font-bold py-4 text-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
-                <i class="fa-solid fa-user-plus"></i> DAFTAR AWAM
-            </button>
-        </form>
-
-        <div class="relative flex py-7 items-center">
-            <div class="flex-grow soft-divider"></div>
-            <span class="mx-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Admin</span>
-            <div class="flex-grow soft-divider"></div>
-        </div>
-
-        <button onclick="setRole('admin')" id="adminBtn"
-            class="secondary-btn w-full border-2 border-[#ffc20e] text-[#8a0028] font-bold py-4 text-sm flex items-center justify-center gap-3 hover:bg-yellow-50 transition-all active:scale-[0.98] bg-white/35">
-            <i class="fa-solid fa-user-shield"></i> LOG MASUK ADMIN
-        </button>
-
-        <p id="helperText" class="text-[10px] text-slate-400 mt-4 italic">
-            Sekolah dan awam boleh daftar akaun sebelum log masuk.
-        </p>
+<div class="card">
+    <div class="logo-wrap">
+        <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ Logo">
+        <h1>EventraZ</h1>
+        <p>Portal Log Masuk Rasmi</p>
     </div>
 
-    <script>
-        var currentRole = 'school';
-        var currentMode = 'login';
+    <div class="role-tabs" id="roleTabs">
+        <button id="tabSchool" class="active" onclick="setRole('school')">
+            <i class="fa-solid fa-school" style="margin-right:5px;font-size:10px"></i>Sekolah
+        </button>
+        <button id="tabAwam" onclick="setRole('awam')">
+            <i class="fa-solid fa-user-group" style="margin-right:5px;font-size:10px"></i>Awam
+        </button>
+    </div>
 
-        function setRole(role) {
-            currentRole = role;
+    <!-- Login panel -->
+    <div id="loginPanel" class="panel active">
+        <div class="field">
+            <label id="lblUser">Kod Sekolah / Emel</label>
+            <div class="inp-wrap">
+                <i id="iconUser" class="fa-solid fa-school"></i>
+                <input type="text" id="user" placeholder="Kod Sekolah atau Emel">
+            </div>
+        </div>
+        <div class="field">
+            <label>Kata Laluan</label>
+            <div class="inp-wrap">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="pass" placeholder="Kata Laluan">
+            </div>
+        </div>
+        <button class="btn-main" onclick="doLogin()">
+            <i class="fa-solid fa-right-to-bracket"></i> Log Masuk
+        </button>
+        <p class="text-link">Belum ada akaun? <a onclick="setMode('signup')">Daftar Akaun</a></p>
+    </div>
 
-            document.getElementById('tabSchool').classList.toggle('tab-active', role === 'school');
-            document.getElementById('tabAwam').classList.toggle('tab-active', role === 'awam');
-            document.getElementById('adminBtn').classList.toggle('mode-active', role === 'admin');
+    <!-- Signup school panel -->
+    <div id="signupSchoolPanel" class="panel">
+        <form onsubmit="doSignup(event,'school')">
+            <input type="hidden" name="signupRole" value="school">
+            <div class="field">
+                <label>Nama Sekolah</label>
+                <div class="inp-wrap">
+                    <i class="fa-solid fa-school"></i>
+                    <input name="school_name" type="text" placeholder="Nama Sekolah" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Kod Sekolah</label>
+                <div class="inp-wrap">
+                    <i class="fa-solid fa-address-card"></i>
+                    <input name="school_code" type="text" placeholder="Kod Sekolah" style="text-transform:uppercase" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Emel Sekolah</label>
+                <div class="inp-wrap">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input name="email" type="email" placeholder="Emel Sekolah" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Kata Laluan</label>
+                <div class="inp-wrap">
+                    <i class="fa-solid fa-lock"></i>
+                    <input name="password" type="password" placeholder="Kata Laluan" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-main">
+                <i class="fa-solid fa-user-plus"></i> Daftar Sekolah
+            </button>
+        </form>
+        <p class="text-link">Sudah ada akaun? <a onclick="setMode('login')">Log Masuk</a></p>
+    </div>
 
-            var lblUser = document.getElementById('lblUser');
-            var txtUser = document.getElementById('user');
-            var iconUser = document.getElementById('iconUser');
-            var userModes = document.getElementById('userModes');
+    <!-- Signup awam panel -->
+    <div id="signupAwamPanel" class="panel">
+        <form onsubmit="doSignup(event,'awam')">
+            <input type="hidden" name="signupRole" value="awam">
+            <div class="field">
+                <label>Nama Penuh</label>
+                <div class="inp-wrap">
+                    <i class="fa-solid fa-user"></i>
+                    <input name="name" type="text" placeholder="Nama Penuh" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Emel</label>
+                <div class="inp-wrap">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input name="email" type="email" placeholder="Emel" required>
+                </div>
+            </div>
+            <div class="field">
+                <label>Kata Laluan</label>
+                <div class="inp-wrap">
+                    <i class="fa-solid fa-lock"></i>
+                    <input name="password" type="password" placeholder="Kata Laluan" required>
+                </div>
+            </div>
+            <button type="submit" class="btn-main">
+                <i class="fa-solid fa-user-plus"></i> Daftar Awam
+            </button>
+        </form>
+        <p class="text-link">Sudah ada akaun? <a onclick="setMode('login')">Log Masuk</a></p>
+    </div>
 
-            if (role === 'admin') {
-                currentMode = 'login';
-                userModes.style.display = 'none';
-                lblUser.innerText = 'ID Admin *';
-                txtUser.placeholder = 'Masukkan ID Admin';
-                iconUser.className = 'fa-solid fa-user-shield';
-            } else {
-                userModes.style.display = 'flex';
-                lblUser.innerText = role === 'school' ? 'Kod Sekolah / Emel *' : 'Emel Awam *';
-                txtUser.placeholder = role === 'school' ? 'Masukkan Kod Sekolah atau Emel' : 'Masukkan Emel Awam';
-                iconUser.className = role === 'school' ? 'fa-solid fa-school' : 'fa-solid fa-envelope';
-            }
+    <!-- Admin login panel -->
+    <div id="adminPanel" class="panel">
+        <div class="field">
+            <label>ID Admin</label>
+            <div class="inp-wrap">
+                <i class="fa-solid fa-user-shield"></i>
+                <input type="text" id="adminUser" placeholder="Masukkan ID Admin">
+            </div>
+        </div>
+        <div class="field">
+            <label>Kata Laluan</label>
+            <div class="inp-wrap">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="adminPass" placeholder="Kata Laluan">
+            </div>
+        </div>
+        <button class="btn-main" onclick="doLoginAdmin()">
+            <i class="fa-solid fa-right-to-bracket"></i> Log Masuk Admin
+        </button>
+        <p class="text-link"><a onclick="exitAdmin()">← Kembali</a></p>
+    </div>
 
-            setMode(currentMode);
+    <div class="divider" id="adminDivider">
+        <div class="div-line"></div>
+        <span>Admin</span>
+        <div class="div-line"></div>
+    </div>
+    <button class="btn-admin" id="adminBtn" onclick="toggleAdmin()">
+        <i class="fa-solid fa-user-shield"></i> Log Masuk Admin
+    </button>
+</div>
+
+<script>
+    var currentRole = 'school';
+    var currentMode = 'login';
+    var adminMode   = false;
+
+    function setRole(role) {
+        currentRole = role;
+        document.getElementById('tabSchool').classList.toggle('active', role === 'school');
+        document.getElementById('tabAwam').classList.toggle('active', role === 'awam');
+
+        var lbl  = document.getElementById('lblUser');
+        var inp  = document.getElementById('user');
+        var icon = document.getElementById('iconUser');
+
+        if (role === 'school') {
+            lbl.innerText   = 'Kod Sekolah / Emel';
+            inp.placeholder = 'Kod Sekolah atau Emel';
+            icon.className  = 'fa-solid fa-school';
+        } else {
+            lbl.innerText   = 'Emel Awam';
+            inp.placeholder = 'Masukkan Emel Awam';
+            icon.className  = 'fa-solid fa-envelope';
         }
+        syncPanels();
+    }
 
-        function setMode(mode) {
-            if (currentRole === 'admin') {
-                mode = 'login';
-            }
+    function setMode(mode) {
+        currentMode = mode;
+        adminMode   = false;
+        showMainUI(true);
+        syncPanels();
+    }
 
-            currentMode = mode;
-            document.getElementById('modeLogin').classList.toggle('mode-active', mode === 'login');
-            document.getElementById('modeSignup').classList.toggle('mode-active', mode === 'signup');
-            document.getElementById('loginPanel').classList.toggle('active', mode === 'login');
-            document.getElementById('signupSchoolPanel').classList.toggle('active', mode === 'signup' && currentRole === 'school');
-            document.getElementById('signupAwamPanel').classList.toggle('active', mode === 'signup' && currentRole === 'awam');
-        }
+    function toggleAdmin() {
+        adminMode = true;
+        showMainUI(false);
+        syncPanels();
+    }
 
-        async function doLogin() {
-            var userVal = document.getElementById('user').value.trim();
-            var passVal = document.getElementById('pass').value.trim();
+    function exitAdmin() {
+        adminMode = false;
+        showMainUI(true);
+        syncPanels();
+    }
 
-            if (!userVal || !passVal) {
-                Swal.fire({ icon: 'warning', title: 'Sila lengkapkan maklumat', text: 'ID/Emel dan Kata Laluan diperlukan.' });
-                return;
-            }
+    function showMainUI(show) {
+        document.getElementById('roleTabs').style.display     = show ? 'flex' : 'none';
+        document.getElementById('adminDivider').style.display = show ? 'flex' : 'none';
+        document.getElementById('adminBtn').style.display     = show ? 'flex' : 'none';
+    }
 
-            Swal.fire({ title: 'Menyemak Akses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-            try {
-                const res = await fetch('<?= base_url('login/proses') ?>', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ username: userVal, password: passVal, role: currentRole })
-                });
-                const result = await res.json();
-                Swal.close();
-
-                if (result.success) {
-                    window.location.href = '<?= base_url() ?>' + result.redirect;
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: result.message });
-                }
-            } catch (err) {
-                Swal.close();
-                Swal.fire({ icon: 'error', title: 'Ralat', text: 'Sistem sedang sibuk. Sila cuba sebentar lagi.' });
-            }
-        }
-
-        async function doSignup(event) {
-            event.preventDefault();
-            var form = event.target;
-            var role = new FormData(form).get('signupRole');
-            var endpoint = role === 'school' ? '<?= base_url('signup/school') ?>' : '<?= base_url('signup/awam') ?>';
-
-            for (var input of form.querySelectorAll('input:not([type="hidden"])')) {
-                if (!input.value.trim()) {
-                    Swal.fire({ icon: 'warning', title: 'Maklumat belum lengkap', text: 'Sila lengkapkan semua medan.' });
-                    input.focus();
-                    return;
-                }
-            }
-
-            Swal.fire({ title: 'Mendaftar Akaun...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-            try {
-                const res = await fetch(endpoint, { method: 'POST', body: new FormData(form) });
-                const result = await res.json();
-                Swal.close();
-
-                if (result.success) {
-                    form.reset();
-                    setMode('login');
-                    Swal.fire({ icon: 'success', title: 'Berjaya', text: result.message });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: result.message });
-                }
-            } catch (err) {
-                Swal.close();
-                Swal.fire({ icon: 'error', title: 'Ralat', text: 'Akaun tidak dapat didaftarkan buat masa ini.' });
-            }
-        }
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && currentMode === 'login') doLogin();
+    function syncPanels() {
+        ['loginPanel','signupSchoolPanel','signupAwamPanel','adminPanel'].forEach(function(id) {
+            document.getElementById(id).classList.remove('active');
         });
-    </script>
+        if (adminMode) {
+            document.getElementById('adminPanel').classList.add('active');
+            return;
+        }
+        if (currentMode === 'login') {
+            document.getElementById('loginPanel').classList.add('active');
+        } else {
+            document.getElementById(currentRole === 'school' ? 'signupSchoolPanel' : 'signupAwamPanel').classList.add('active');
+        }
+    }
+
+    async function doLogin() {
+        var userVal = document.getElementById('user').value.trim();
+        var passVal = document.getElementById('pass').value.trim();
+
+        if (!userVal || !passVal) {
+            Swal.fire({ icon: 'warning', title: 'Maklumat diperlukan', text: 'Sila isi ID/Emel dan Kata Laluan.' });
+            return;
+        }
+
+        Swal.fire({ title: 'Menyemak Akses...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+        try {
+            var res = await fetch('<?= base_url("login/proses") ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ username: userVal, password: passVal, role: currentRole })
+            });
+            var result = await res.json();
+            Swal.close();
+
+            if (result.success) {
+                window.location.href = '<?= base_url() ?>' + result.redirect;
+            } else {
+                Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: result.message });
+            }
+        } catch (err) {
+            Swal.close();
+            Swal.fire({ icon: 'error', title: 'Ralat', text: 'Sistem sedang sibuk. Sila cuba sebentar lagi.' });
+        }
+    }
+
+    async function doLoginAdmin() {
+        var userVal = document.getElementById('adminUser').value.trim();
+        var passVal = document.getElementById('adminPass').value.trim();
+
+        if (!userVal || !passVal) {
+            Swal.fire({ icon: 'warning', title: 'Maklumat diperlukan', text: 'Sila isi ID Admin dan Kata Laluan.' });
+            return;
+        }
+
+        Swal.fire({ title: 'Menyemak Akses...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+        try {
+            var res = await fetch('<?= base_url("login/proses") ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ username: userVal, password: passVal, role: 'admin' })
+            });
+            var result = await res.json();
+            Swal.close();
+
+            if (result.success) {
+                window.location.href = '<?= base_url() ?>' + result.redirect;
+            } else {
+                Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: result.message });
+            }
+        } catch (err) {
+            Swal.close();
+            Swal.fire({ icon: 'error', title: 'Ralat', text: 'Sistem sedang sibuk. Sila cuba sebentar lagi.' });
+        }
+    }
+
+    async function doSignup(event, role) {
+        event.preventDefault();
+        var form     = event.target;
+        var endpoint = role === 'school' ? '<?= base_url("signup/school") ?>' : '<?= base_url("signup/awam") ?>';
+
+        Swal.fire({ title: 'Mendaftar Akaun...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+        try {
+            var res    = await fetch(endpoint, { method: 'POST', body: new FormData(form) });
+            var result = await res.json();
+            Swal.close();
+
+            if (result.success) {
+                form.reset();
+                setMode('login');
+                Swal.fire({ icon: 'success', title: 'Berjaya!', text: result.message });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: result.message });
+            }
+        } catch (err) {
+            Swal.close();
+            Swal.fire({ icon: 'error', title: 'Ralat', text: 'Akaun tidak dapat didaftarkan buat masa ini.' });
+        }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            if (adminMode) { doLoginAdmin(); }
+            else if (currentMode === 'login') { doLogin(); }
+        }
+    });
+</script>
 </body>
 </html>
