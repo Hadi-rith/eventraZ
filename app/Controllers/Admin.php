@@ -47,16 +47,8 @@ class Admin extends BaseController
     }
 
     /**
-     * Converts any uncaught exception into a clean JSON 500 response instead of
-     * letting CodeIgniter render its HTML error page. An HTML body breaks every
-     * frontend call here because they all do `await res.json()` — an HTML
-     * response makes that throw, which is what was producing the generic
-     * "Ralat Sambungan" toasts regardless of what actually went wrong server-side.
-     *
-     * The 'debug' block exposes the real exception message/file/line so the
-     * actual root cause shows up directly in the browser instead of requiring
-     * access to the server log. Remove the 'debug' key once you've found and
-     * fixed the underlying issue — it shouldn't ship to production long-term.
+     * Converts uncaught admin errors into JSON so frontend fetch calls do not
+     * fail while parsing an HTML error page.
      */
     private function serverErrorResponse(\Throwable $e, string $context)
     {
@@ -64,13 +56,7 @@ class Admin extends BaseController
 
         return $this->response->setStatusCode(500)->setJSON([
             'success' => false,
-            'message' => 'Ralat pelayan dalaman: ' . $e->getMessage(),
-            'debug'   => [
-                'context' => $context,
-                'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
-                'line'    => $e->getLine(),
-            ],
+            'message' => 'Ralat pelayan dalaman. Sila semak log pelayan.',
         ]);
     }
 

@@ -521,12 +521,6 @@
 
             programCache = list;
 
-            // DEBUG: Log the list to see parent_id values
-            console.log('Program list from API:', list);
-            list.forEach(function(p) {
-                console.log('Program:', p.kod || p.id, 'parent_id:', p.parent_id, 'type:', typeof p.parent_id);
-            });
-
             // Update filter dropdown (sidebar)
             var drop = document.getElementById('filterProgram');
             var selected = drop.value || 'SEMUA';
@@ -543,11 +537,10 @@
                 drop.value = selected;
             }
 
-            // Update parent program dropdown (only main programs, no parent_id)
+            // Only main programs can become parents; this prevents nested sub programs.
             var parentDrop = document.getElementById('parentProgramSelect');
             var parentSelected = parentDrop.value || '';
             parentDrop.innerHTML = '<option value="">-- Pilih Program Induk --</option>';
-            // Only show programs that are NOT sub-programs (parent_id is null or 0)
             list.forEach(function(p) {
                 var parentId = p.parent_id;
                 var isMain = parentId === null || parentId === undefined || parentId === '' || parentId === 0 || parentId === '0' || parentId === 'null';
@@ -625,14 +618,12 @@
             var countEl = document.getElementById('programCount');
             if (!tbody) return;
 
-            // IMPORTANT FIX: Correctly identify main vs sub programs
-            // A program is a SUB program if parent_id has a valid value
+            // Treat any real parent_id as a sub program; legacy empty values still count as main programs.
             var mains = [];
             var subs = [];
 
             list.forEach(function(p) {
                 var parentId = p.parent_id;
-                // Check if parent_id exists and has a value (not null, undefined, empty, 0, or 'null')
                 var isSub = parentId !== null && 
                            parentId !== undefined && 
                            parentId !== '' && 
@@ -643,10 +634,8 @@
                 
                 if (isSub) {
                     subs.push(p);
-                    console.log('SUB program detected:', p.kod || p.id, 'parent_id:', parentId);
                 } else {
                     mains.push(p);
-                    console.log('MAIN program detected:', p.kod || p.id, 'parent_id:', parentId);
                 }
             });
 
@@ -666,23 +655,19 @@
                 codeToProgram[p.kod || p.id] = p;
             });
 
-            // Also build id -> kod map for resolving parent_id
+            // Resolve parent references defensively because old data may store either db id or program code.
             var idToKod = {};
             list.forEach(function(p) {
                 if (p.db_id) idToKod[p.db_id] = p.kod || p.id;
                 // Also map by numeric id if db_id is not available
                 if (p.id && !isNaN(p.id)) idToKod[parseInt(p.id)] = p.kod || p.id;
             });
-
-            // For each sub, resolve parent_kod if not already set
             subs.forEach(function(s) {
                 if (!s.parent_kod && s.parent_id) {
-                    // Try to find parent by matching parent_id numeric to db_id
                     var parentId = parseInt(s.parent_id);
                     if (parentId && idToKod[parentId]) {
                         s.parent_kod = idToKod[parentId];
                     } else {
-                        // Try to find by matching parent_id to kod (string)
                         var parentByKod = list.find(function(p) {
                             return p.kod === String(s.parent_id) || p.id === String(s.parent_id);
                         });
@@ -693,7 +678,6 @@
                         }
                     }
                 }
-                console.log('Sub program:', s.kod || s.id, 'parent_kod:', s.parent_kod);
             });
 
             tbody.innerHTML = '';

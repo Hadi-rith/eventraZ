@@ -17,11 +17,41 @@ class PublicPortal extends BaseController
     {
         $formData     = $this->request->getPost();
         $programModel = new ProgramModel();
+        $required     = ['mainProgramId', 'subKategori', 'namaPenuh', 'noIC', 'telAwam', 'email'];
 
-        // Use sub_program_id if selected, otherwise fall back to main program
+        foreach ($required as $field) {
+            if (trim((string) ($formData[$field] ?? '')) === '') {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => 'Sila lengkapkan semua medan wajib.',
+                ]);
+            }
+        }
+
+        if (!in_array($formData['subKategori'], ['Sekolah Luar', 'Orang Awam'], true)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Kategori pendaftaran tidak sah.',
+            ]);
+        }
+
+        if (!filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Format emel tidak sah.',
+            ]);
+        }
+
+        // Use the selected sub program when present; otherwise register under the main program.
         $programId   = !empty($formData['subProgramId']) ? $formData['subProgramId'] : $formData['mainProgramId'];
         $program     = $programModel->find($programId);
-        $programName = $program ? $program['program_name'] : $programId;
+        if (!$program) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Program yang dipilih tidak sah.',
+            ]);
+        }
+        $programName = $program['program_name'];
 
         if ($formData['subKategori'] === 'Sekolah Luar') {
             $model = new DaftarLuarModel();
@@ -54,7 +84,7 @@ class PublicPortal extends BaseController
         return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyimpan data']);
     }
 
-    // Returns only MAIN programs (parent_id IS NULL)
+    // Registration forms should start with main programs; sub programs are loaded after selection.
     public function getProgramList()
     {
         $programModel = new ProgramModel();
@@ -73,7 +103,7 @@ class PublicPortal extends BaseController
             ->setJSON($list);
     }
 
-    // Returns SUB programs for a given main program id
+    // Keep the child list scoped to the chosen main program.
     public function getSubPrograms($parentId = null)
     {
         if (!$parentId) {
