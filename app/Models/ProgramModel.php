@@ -8,7 +8,11 @@ class ProgramModel extends Model
 {
     protected $table = 'programs';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['program_code', 'parent_id', 'program_name', 'start_date', 'end_date', 'status'];
+    protected $allowedFields = [
+        'program_code', 'parent_id', 'program_name', 
+        'start_date', 'end_date', 'status', 
+        'pic_nama', 'pic_tel', 'poster_image', 'location', 'is_featured'
+    ];
     protected $useTimestamps = false;
 
     public function calculateStatus(?string $startDate, ?string $endDate): string
@@ -50,5 +54,15 @@ class ProgramModel extends Model
             ->orderBy('start_date', 'ASC')
             ->orderBy('program_name', 'ASC')
             ->findAll();
+    }
+
+    public function getFeaturedPrograms()
+    {
+        $this->refreshProgramStatuses();
+        
+        return $this->where('is_featured', 1)
+                    ->where('status', 'AKTIF')
+                    ->orderBy('start_date', 'ASC')
+                    ->findAll();
     }
 }

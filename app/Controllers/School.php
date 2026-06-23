@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\DaftarSekolahModel;
 use App\Models\DaftarMuridModel;
 use App\Models\ProgramModel;
+use App\Models\EventModel;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
@@ -57,7 +58,10 @@ class School extends BaseController
         }
 
         for ($i = 0; $i < $bil; $i++) {
-            if (trim((string) ($formData["namaMurid_{$i}"] ?? '')) === '' || trim((string) ($formData["icMurid_{$i}"] ?? '')) === '') {
+            if (
+                trim((string) ($formData["namaMurid_{$i}"] ?? '')) === '' ||
+                trim((string) ($formData["icMurid_{$i}"]   ?? '')) === ''
+            ) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
                     'message' => 'Sila lengkapkan semua maklumat murid.',
@@ -65,7 +69,7 @@ class School extends BaseController
             }
         }
 
-        // Use the selected sub program when present; otherwise register under the main program.
+        // Use sub program if chosen, otherwise fall back to main program
         $programId   = !empty($formData['subProgramId']) ? $formData['subProgramId'] : $formData['mainProgramId'];
         $program     = $programModel->find($programId);
         if (!$program) {
@@ -110,18 +114,48 @@ class School extends BaseController
         return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyimpan data']);
     }
 
+    public function myRegistrations()
+    {
+        $schoolCode   = $this->session->get('school_code');
+        $sekolahModel = new DaftarSekolahModel();
+        $muridModel   = new DaftarMuridModel();
+        $programModel = new ProgramModel();
+
+        $registrations = $sekolahModel->where('kod_sekolah', $schoolCode)->orderBy('timestamp', 'DESC')->findAll();
+
+        foreach ($registrations as &$reg) {
+            // Attach students
+            $reg['murid'] = $muridModel->where('registration_id', $reg['id'])->findAll();
+
+            // Attach program dates and PIC info
+            $program = $programModel->where('program_name', $reg['program_name'])->first();
+            $reg['start_date']  = $program['start_date'] ?? null;
+            $reg['end_date']    = $program['end_date']   ?? null;
+            $reg['prog_status'] = $program['status']     ?? null;
+            $reg['pic_nama']    = $program['pic_nama']   ?? '-';
+            $reg['pic_tel']     = $program['pic_tel']    ?? '-';
+        }
+
+        return $this->response->setJSON(['success' => true, 'data' => $registrations]);
+    }
+
     // Registration forms should start with main programs; sub programs are loaded after selection.
     public function getProgramList()
     {
         $programModel = new ProgramModel();
-        $programs     = $programModel
+        $programs = $programModel
             ->where('status', 'AKTIF')
             ->where('parent_id IS NULL', null, false)
             ->findAll();
 
         $list = [];
         foreach ($programs as $prog) {
-            $list[] = ['id' => $prog['id'], 'nama' => $prog['program_name']];
+            $list[] = [
+                'id' => $prog['id'], 
+                'nama' => $prog['program_name'],
+                'pic_nama' => $prog['pic_nama'] ?? '-',
+                'pic_tel' => $prog['pic_tel'] ?? '-'
+            ];
         }
 
         return $this->response
@@ -144,11 +178,114 @@ class School extends BaseController
 
         $list = [];
         foreach ($subs as $prog) {
-            $list[] = ['id' => $prog['id'], 'nama' => $prog['program_name']];
+            $list[] = [
+                'id' => $prog['id'], 
+                'nama' => $prog['program_name'],
+                'pic_nama' => $prog['pic_nama'] ?? '-',
+                'pic_tel' => $prog['pic_tel'] ?? '-'
+            ];
         }
 
         return $this->response
             ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->setJSON($list);
     }
+
+    public function getProgramDetails($programId = null)
+    {
+        if (!$programId) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false, 
+                'message' => 'Program ID diperlukan'
+            ]);
+        }
+
+        $programModel = new ProgramModel();
+        $program = $programModel->find($programId);
+        
+        if (!$program) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false, 
+                'message' => 'Program tidak ditemui'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'program' => [
+                'id' => $program['id'],
+                'name' => $program['program_name'],
+                'pic_nama' => $program['pic_nama'] ?? '-',
+                'pic_tel' => $program['pic_tel'] ?? '-',
+                'start_date' => $program['start_date'],
+                'end_date' => $program['end_date'],
+                'status' => $program['status']
+            ]
+        ]);
+    }
+
+/**
+ * Display the school events page
+ */
+public function events()
+{
+    return view('school_events');
+}
+
+/**
+ * Get all programs as events for school users
+ */
+public function getEvents()
+{
+    try {
+        $programModel = new \App\Models\ProgramModel();
+        $programModel->refreshProgramStatuses();
+        
+        $allPrograms = $programModel
+            ->orderBy('start_date', 'DESC')
+            ->findAll();
+        
+        $upcoming = [];
+        $ongoing = [];
+        $past = [];
+        $featured = [];
+        
+        $today = date('Y-m-d');
+        
+        foreach ($allPrograms as $prog) {
+            if (!$prog['start_date'] || !$prog['end_date']) continue;
+            
+            if ($prog['end_date'] < $today) {
+                $prog['event_status'] = 'past';
+                $past[] = $prog;
+            } elseif ($prog['start_date'] <= $today && $prog['end_date'] >= $today) {
+                $prog['event_status'] = 'ongoing';
+                $ongoing[] = $prog;
+                if ($prog['is_featured']) {
+                    $featured[] = $prog;
+                }
+            } else {
+                $prog['event_status'] = 'upcoming';
+                $upcoming[] = $prog;
+                if ($prog['is_featured']) {
+                    $featured[] = $prog;
+                }
+            }
+        }
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'upcoming' => $upcoming,
+            'ongoing' => $ongoing,
+            'past' => $past,
+            'featured' => $featured
+        ]);
+    } catch (\Throwable $e) {
+        log_message('error', '[School::getEvents] ' . $e->getMessage());
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Gagal memuatkan acara.'
+        ]);
+    }
+}
 }

@@ -53,11 +53,47 @@
         select, select option { background: #fff !important; color: #111827 !important; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .event-card {
+            background: rgba(255, 255, 255, .7);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, .82);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .event-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(82, 0, 24, 0.12);
+        }
+        .event-poster {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-upcoming { background: #dbeafe; color: #1e40af; }
+        .status-ongoing { background: #d1fae5; color: #065f46; }
+        .status-past { background: #f3f4f6; color: #4b5563; }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
         @media (max-width: 900px) {
             body.flex { display: block; }
             .sidebar { position: relative; width: 100%; height: auto; }
             .ml-\[280px\] { margin-left: 0 !important; }
             .grid-cols-3 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .event-grid { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
         }
     </style>
 </head>
@@ -128,7 +164,7 @@
             </span>
         </div>
 
-        <!-- Header -->
+        <!-- Data Header -->
         <div id="data-header" style="display:none" class="glass-card flex justify-between items-center mb-8 p-6 rounded-2xl">
             <div>
                 <h2 class="text-2xl font-black text-[#520018] uppercase tracking-tight">Paparan Data Utama</h2>
@@ -156,7 +192,7 @@
             </div>
         </div>
 
-        <!-- Tables -->
+        <!-- Data Tables -->
         <div id="data-tables" style="display:none" class="glass-card rounded-2xl overflow-hidden">
 
             <!-- TRG Tab -->
@@ -301,6 +337,41 @@
                             AUTO
                         </div>
                     </div>
+                    <div class="col-span-12 md:col-span-5">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider"><i class="fa-solid fa-user-tie mr-1 text-[#8a0028]"></i> Nama Penganjur / PIC</label>
+                        <input type="text" id="picNama" name="pic_nama" placeholder="Nama penuh penganjur / PIC"
+                            class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
+                    </div>
+                    <div class="col-span-12 md:col-span-3">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider"><i class="fa-solid fa-phone mr-1 text-[#8a0028]"></i> No. Tel Penganjur / PIC</label>
+                        <input type="text" id="picTel" name="pic_tel" placeholder="Contoh: 013XXXXXXX"
+                            class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
+                    </div>
+                    <div class="col-span-12 md:col-span-4">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider"><i class="fa-solid fa-location-dot mr-1 text-[#8a0028]"></i> Lokasi Program</label>
+                        <input type="text" id="programLocation" name="location" placeholder="Contoh: Dewan Utama, KL"
+                            class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
+                    </div>
+                    <div class="col-span-12">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider"><i class="fa-solid fa-image mr-1 text-[#8a0028]"></i> Poster Program</label>
+                        <div class="flex items-start gap-4">
+                            <div class="flex-1">
+                                <label for="programPoster"
+                                    class="flex items-center gap-3 w-full p-3 border-2 border-dashed border-[#8a0028]/30 rounded-xl cursor-pointer hover:border-[#8a0028]/60 hover:bg-yellow-50/40 transition-all eventraz-field">
+                                    <i class="fa-solid fa-cloud-arrow-up text-[#8a0028] text-xl"></i>
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-600">Klik untuk pilih gambar poster</p>
+                                        <p class="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WEBP — maks 2MB</p>
+                                    </div>
+                                </label>
+                                <input type="file" id="programPoster" name="poster_image" accept="image/*" class="hidden" onchange="pratonton_poster(this)">
+                            </div>
+                            <div id="posterPreviewBox" class="hidden w-24 h-24 rounded-xl overflow-hidden border border-slate-200 flex-shrink-0">
+                                <img id="posterPreviewImg" src="" alt="Poster" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                        <p id="posterFileName" class="text-[10px] text-slate-400 mt-1.5 ml-1 hidden"></p>
+                    </div>
                     <div class="col-span-12 flex flex-wrap gap-3">
                         <button type="submit" id="btnDaftarProgram"
                             class="eventraz-btn text-white text-sm font-bold px-8 py-3 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95">
@@ -330,6 +401,8 @@
                                 <th class="p-4">Jenis</th>
                                 <th class="p-4">Kod Program</th>
                                 <th class="p-4">Nama Program</th>
+                                <th class="p-4">Penganjur / PIC</th>
+                                <th class="p-4">No. Tel PIC</th>
                                 <th class="p-4">Tarikh Mula</th>
                                 <th class="p-4">Tarikh Tamat</th>
                                 <th class="p-4">Tempoh (Hari)</th>
@@ -339,14 +412,38 @@
                             </tr>
                         </thead>
                         <tbody id="tableProgramSenarai" class="divide-y text-slate-600">
-                            <tr><td colspan="10" class="p-8 text-center text-slate-400 italic">Memuatkan senarai program...</td></tr>
+                            <tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Memuatkan senarai program...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
+            <!-- Events Management Section - Poster & Info Editor -->
+            <div class="mt-12 pt-8 border-t-2 border-dashed border-yellow-300">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-lg font-black text-[#520018] uppercase tracking-wider flex items-center gap-3">
+                            <i class="fa-solid fa-calendar-days text-[#8a0028]"></i> Acara & Poster Program
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1">Tambah acara baharu atau kemaskini poster, lokasi dan status featured</p>
+                    </div>
+                    <button onclick="bukaBorangAcara()"
+                        class="eventraz-btn text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
+                        <i class="fa-solid fa-plus"></i> TAMBAH ACARA
+                    </button>
+                </div>
+
+                <!-- Program Cards Grid -->
+                <div id="eventGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="col-span-3 text-center text-slate-400 text-sm py-12">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuatkan program...
+                    </p>
+                </div>
+            </div>
+
         </div>
 
+        <!-- Akaun Tab -->
         <div id="tab-akaun" class="tab-content">
             <div class="glass-card flex justify-between items-center mb-8 p-6 rounded-2xl">
                 <div>
@@ -425,6 +522,107 @@
         var masterData = { sekolahTRG: [], sekolahLuar: [], orangAwam: [] };
         var programCache = [];
         var accountCache = { school: [], public: [] };
+        var eventsCache = [];
+
+        // ============================================================
+        // UTILITY FUNCTIONS
+        // ============================================================
+
+        function getTodayDate() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, function (char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[char];
+            });
+        }
+
+        function escapeJs(value) {
+            return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
+        function formatTarikh(dateStr) {
+            if (!dateStr) return '—';
+            var d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function baseUrl(path) {
+            return '<?= base_url() ?>' + path;
+        }
+
+        // ============================================================
+        // TAB NAVIGATION
+        // ============================================================
+
+        function tukarTab(tabId, btn) {
+            if (!document.getElementById('tab-' + tabId)) {
+                tabId = 'daftar';
+            }
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            if (!btn) {
+                btn = document.querySelector('.nav-btn[onclick*="' + tabId + '"]');
+            }
+
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('active-nav');
+                b.classList.add('text-yellow-100', 'hover:bg-white/10');
+            });
+            if (btn) {
+                btn.classList.add('active-nav');
+                btn.classList.remove('text-yellow-100', 'hover:bg-white/10');
+            }
+
+            var isDaftar = tabId === 'daftar';
+            var isDataTab = ['trg', 'luar', 'awam'].includes(tabId);
+            
+            document.getElementById('data-header').style.display    = isDataTab ? '' : 'none';
+            document.getElementById('stat-cards').style.display     = isDataTab ? '' : 'none';
+            document.getElementById('data-tables').style.display    = isDataTab ? '' : 'none';
+            document.getElementById('daftar-header').style.display  = isDaftar ? '' : 'none';
+
+            if (tabId === 'akaun') {
+                muatAkaun(false);
+            }
+
+            if (tabId === 'daftar') {
+                setTimeout(function() {
+                    muatAcaraProgram();
+                }, 500);
+            }
+
+            localStorage.setItem('adminDashboardTab', tabId);
+            var url = new URL(window.location.href);
+            url.searchParams.set('tab', tabId);
+            history.replaceState(null, '', url.toString());
+        }
+
+        function getTabAktif() {
+            var active = document.querySelector('.tab-content.active');
+            return active ? active.id.replace('tab-', '') : 'daftar';
+        }
+
+        function bukaTabPermulaan() {
+            var params = new URLSearchParams(window.location.search);
+            var tab = params.get('tab') || localStorage.getItem('adminDashboardTab') || 'daftar';
+            var validTabs = ['daftar', 'trg', 'luar', 'awam', 'akaun'];
+
+            if (!validTabs.includes(tab)) {
+                tab = 'daftar';
+            }
+
+            tukarTab(tab);
+        }
 
         window.onload = function () {
             tetapkanTarikhMinimum();
@@ -437,6 +635,7 @@
             var initialTab = getTabAktif();
             if (initialTab === 'daftar') {
                 muatDataLive(false);
+                setTimeout(function() { muatAcaraProgram(); }, 600);
             } else if (['trg', 'luar', 'awam'].includes(initialTab)) {
                 muatDataLive(true);
             }
@@ -444,9 +643,9 @@
             muatAkaun(false);
         };
 
-        function getTodayDate() {
-            return new Date().toISOString().slice(0, 10);
-        }
+        // ============================================================
+        // PROGRAM FUNCTIONS
+        // ============================================================
 
         function tetapkanTarikhMinimum() {
             var startInput = document.getElementById('startDate');
@@ -461,11 +660,9 @@
 
         function kiraStatusProgram(startDate, endDate) {
             var today = getTodayDate();
-
             if (endDate && endDate < today) {
                 return 'TIDAK AKTIF';
             }
-
             return 'AKTIF';
         }
 
@@ -493,22 +690,6 @@
                 : 'w-full p-3 border border-slate-200 rounded-xl text-[10px] text-center font-black bg-slate-100 text-slate-600 uppercase';
         }
 
-        function escapeHtml(value) {
-            return String(value ?? '').replace(/[&<>"']/g, function (char) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                }[char];
-            });
-        }
-
-        function escapeJs(value) {
-            return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        }
-
         async function muatSenaraiProgram() {
             const res = await fetch('<?= base_url('admin/programs') ?>?t=' + Date.now(), { cache: 'no-store' });
             const list = await res.json();
@@ -521,7 +702,6 @@
 
             programCache = list;
 
-            // Update filter dropdown (sidebar)
             var drop = document.getElementById('filterProgram');
             var selected = drop.value || 'SEMUA';
             drop.innerHTML = '<option value="SEMUA">-- SEMUA PROGRAM --</option>';
@@ -537,7 +717,6 @@
                 drop.value = selected;
             }
 
-            // Only main programs can become parents; this prevents nested sub programs.
             var parentDrop = document.getElementById('parentProgramSelect');
             var parentSelected = parentDrop.value || '';
             parentDrop.innerHTML = '<option value="">-- Pilih Program Induk --</option>';
@@ -581,19 +760,12 @@
         }
 
         function tambahSubProgram(parentKod, parentNama) {
-            // Switch to sub mode and pre-select the parent
             setProgramType('sub');
             var parentDrop = document.getElementById('parentProgramSelect');
             if ([...parentDrop.options].some(o => o.value === parentKod)) {
                 parentDrop.value = parentKod;
             }
             document.getElementById('programForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function formatTarikh(dateStr) {
-            if (!dateStr) return '—';
-            var d = new Date(dateStr + 'T00:00:00');
-            return d.toLocaleDateString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' });
         }
 
         function kiraTempoh(start, end) {
@@ -618,7 +790,6 @@
             var countEl = document.getElementById('programCount');
             if (!tbody) return;
 
-            // Treat any real parent_id as a sub program; legacy empty values still count as main programs.
             var mains = [];
             var subs = [];
 
@@ -631,7 +802,6 @@
                            parentId !== '0' && 
                            parentId !== 'null' &&
                            parentId !== 'NULL';
-                
                 if (isSub) {
                     subs.push(p);
                 } else {
@@ -639,27 +809,23 @@
                 }
             });
 
-            // Sort mains by start_date asc
             mains.sort((a, b) => (a.mula || a.start_date || '').localeCompare(b.mula || b.start_date || ''));
 
             countEl.textContent = list.length + ' program (' + mains.length + ' utama, ' + subs.length + ' sub)';
 
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-slate-400 italic">Tiada program didaftarkan lagi.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Tiada program didaftarkan lagi.</td></tr>';
                 return;
             }
 
-            // Build a lookup: program_code -> program data for resolving parent
             var codeToProgram = {};
             list.forEach(function(p) {
                 codeToProgram[p.kod || p.id] = p;
             });
 
-            // Resolve parent references defensively because old data may store either db id or program code.
             var idToKod = {};
             list.forEach(function(p) {
                 if (p.db_id) idToKod[p.db_id] = p.kod || p.id;
-                // Also map by numeric id if db_id is not available
                 if (p.id && !isNaN(p.id)) idToKod[parseInt(p.id)] = p.kod || p.id;
             });
             subs.forEach(function(s) {
@@ -696,6 +862,8 @@
                     : '<span class="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Tamat</span>';
                 var berbaki = kiraHariBerbaki(tamat);
 
+                var picNama = p.pic_nama || '—';
+                var picTel  = p.pic_tel  || '—';
                 tbody.innerHTML += `<tr class="hover:bg-yellow-50/40 transition-all bg-white">
                     <td class="p-4 text-slate-400 font-medium border-l-4 border-[#8a0028]">${rowNum}</td>
                     <td class="p-4 border-l-0">
@@ -705,6 +873,8 @@
                     </td>
                     <td class="p-4"><span class="bg-yellow-50 text-[#8a0028] px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">${escapeHtml(kod)}</span></td>
                     <td class="p-4 font-semibold text-slate-800">${escapeHtml(nama)}</td>
+                    <td class="p-4 text-slate-700 whitespace-nowrap"><i class="fa-solid fa-user-tie text-[#8a0028] mr-1 text-[10px]"></i>${escapeHtml(picNama)}</td>
+                    <td class="p-4 text-slate-500 whitespace-nowrap">${escapeHtml(picTel)}</td>
                     <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(mula)}</td>
                     <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(tamat)}</td>
                     <td class="p-4 text-slate-500">${kiraTempoh(mula, tamat)}</td>
@@ -725,27 +895,24 @@
                     </td>
                 </tr>`;
 
-                // Find children: subs whose parent matches this program
                 var children = subs.filter(function(s) {
-                    // Check if parent_kod matches this program's kod
                     var parentMatch = s.parent_kod && s.parent_kod === kod;
-                    // Check if parent_id matches this program's db_id
                     var idMatch = false;
                     if (p.db_id && s.parent_id) {
                         idMatch = parseInt(s.parent_id) === parseInt(p.db_id);
                     }
-                    // Check if parent_id matches this program's kod (string)
                     var kodMatch = s.parent_id && String(s.parent_id) === kod;
-                    // Check if parent_id matches this program's id
                     var idStringMatch = s.parent_id && String(s.parent_id) === p.id;
                     return parentMatch || idMatch || kodMatch || idStringMatch;
                 });
 
                 children.forEach(function(s) {
-                    var skod   = s.kod   || s.id || '—';
-                    var snama  = s.nama  || '—';
-                    var smula  = s.mula  || s.start_date || '';
-                    var stamat = s.tamat || s.end_date   || '';
+                    var skod    = s.kod   || s.id || '—';
+                    var snama   = s.nama  || '—';
+                    var smula   = s.mula  || s.start_date || '';
+                    var stamat  = s.tamat || s.end_date   || '';
+                    var spicNama = s.pic_nama || '—';
+                    var spicTel  = s.pic_tel  || '—';
                     var sstatus = String(s.status || '').toUpperCase();
                     var sisAktif = sstatus === 'AKTIF';
                     var sstatusHtml = sisAktif
@@ -762,6 +929,8 @@
                         </td>
                         <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">${escapeHtml(skod)}</span></td>
                         <td class="p-4 font-medium text-slate-700 pl-2">${escapeHtml(snama)}</td>
+                        <td class="p-4 text-slate-700 whitespace-nowrap"><i class="fa-solid fa-user-tie text-blue-500 mr-1 text-[10px]"></i>${escapeHtml(spicNama)}</td>
+                        <td class="p-4 text-slate-500 whitespace-nowrap">${escapeHtml(spicTel)}</td>
                         <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(smula)}</td>
                         <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(stamat)}</td>
                         <td class="p-4 text-slate-500">${kiraTempoh(smula, stamat)}</td>
@@ -781,7 +950,6 @@
                 });
             });
 
-            // Orphaned subs (parent not in current list — edge case)
             var orphans = subs.filter(function(s) {
                 var hasParent = mains.some(function(m) {
                     var mKod = m.kod || m.id;
@@ -796,10 +964,12 @@
             });
 
             orphans.forEach(function(s) {
-                var skod   = s.kod   || s.id || '—';
-                var snama  = s.nama  || '—';
-                var smula  = s.mula  || s.start_date || '';
-                var stamat = s.tamat || s.end_date   || '';
+                var skod    = s.kod   || s.id || '—';
+                var snama   = s.nama  || '—';
+                var smula   = s.mula  || s.start_date || '';
+                var stamat  = s.tamat || s.end_date   || '';
+                var spicNama = s.pic_nama || '—';
+                var spicTel  = s.pic_tel  || '—';
                 var sstatus = String(s.status || '').toUpperCase();
                 var sstatusHtml = sstatus === 'AKTIF'
                     ? '<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase">Aktif</span>'
@@ -811,6 +981,8 @@
                     <td class="p-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider whitespace-nowrap"><i class="fa-solid fa-sitemap mr-1"></i>Sub</span></td>
                     <td class="p-4"><span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-bold text-[10px] uppercase tracking-wider">${escapeHtml(skod)}</span></td>
                     <td class="p-4 font-medium text-slate-700">${escapeHtml(snama)}</td>
+                    <td class="p-4 text-slate-700 whitespace-nowrap"><i class="fa-solid fa-user-tie text-blue-500 mr-1 text-[10px]"></i>${escapeHtml(spicNama)}</td>
+                    <td class="p-4 text-slate-500 whitespace-nowrap">${escapeHtml(spicTel)}</td>
                     <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(smula)}</td>
                     <td class="p-4 text-slate-600 whitespace-nowrap">${formatTarikh(stamat)}</td>
                     <td class="p-4 text-slate-500">${kiraTempoh(smula, stamat)}</td>
@@ -828,6 +1000,25 @@
                     </td>
                 </tr>`;
             });
+        }
+
+        function pratonton_poster(input) {
+            var box  = document.getElementById('posterPreviewBox');
+            var img  = document.getElementById('posterPreviewImg');
+            var name = document.getElementById('posterFileName');
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    box.classList.remove('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+                name.textContent = input.files[0].name;
+                name.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+                name.classList.add('hidden');
+            }
         }
 
         async function daftarProgram(event) {
@@ -858,7 +1049,6 @@
             var programType = form.dataset.type || 'utama';
             var parentCode  = document.getElementById('parentProgramSelect').value.trim();
 
-            // Validate parent selection for sub program
             if (programType === 'sub' && !parentCode && form.dataset.mode !== 'edit') {
                 Swal.fire({ icon: 'warning', title: 'Program induk diperlukan', text: 'Sila pilih program induk untuk sub program ini.' });
                 return;
@@ -871,20 +1061,32 @@
                 var isEdit       = form.dataset.mode === 'edit';
                 var originalCode = form.dataset.originalCode || programCode;
 
-                var url, body;
+                var picNama  = document.getElementById('picNama').value.trim();
+                var picTel   = document.getElementById('picTel').value.trim();
+                var location = document.getElementById('programLocation').value.trim();
+                var posterFile = document.getElementById('programPoster').files[0];
+                var url;
+
+                var body = new FormData();
+                body.append('program_code', programCode);
+                body.append('program_name', programName);
+                body.append('start_date',   startDate);
+                body.append('end_date',     endDate);
+                body.append('pic_nama',     picNama);
+                body.append('pic_tel',      picTel);
+                body.append('location',     location);
+                if (posterFile) body.append('poster_image', posterFile);
 
                 if (isEdit) {
-                    url  = '<?= base_url('admin/programs/update') ?>/' + encodeURIComponent(originalCode);
-                    body = new URLSearchParams({ program_code: programCode, program_name: programName, start_date: startDate, end_date: endDate });
+                    url = '<?= base_url('admin/programs/update') ?>/' + encodeURIComponent(originalCode);
                 } else if (programType === 'sub') {
-                    url  = '<?= base_url('admin/programs/sub') ?>';
-                    body = new URLSearchParams({ parent_code: parentCode, program_code: programCode, program_name: programName, start_date: startDate, end_date: endDate });
+                    url = '<?= base_url('admin/programs/sub') ?>';
+                    body.append('parent_code', parentCode);
                 } else {
-                    url  = '<?= base_url('admin/programs') ?>';
-                    body = new URLSearchParams({ program_code: programCode, program_name: programName, start_date: startDate, end_date: endDate });
+                    url = '<?= base_url('admin/programs') ?>';
                 }
 
-                const res    = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+                const res    = await fetch(url, { method: 'POST', body });
                 const result = await res.json();
 
                 if (result.success) {
@@ -918,7 +1120,6 @@
             form.dataset.mode = 'edit';
             form.dataset.originalCode = programCode;
             
-            // Determine if this is a sub program
             var parentId = program.parent_id;
             var isSub = parentId !== null && 
                        parentId !== undefined && 
@@ -933,8 +1134,24 @@
             document.getElementById('programName').value = program.nama || program.name || '';
             document.getElementById('startDate').value = program.mula || program.start_date || '';
             document.getElementById('endDate').value = program.tamat || program.end_date || '';
+            document.getElementById('picNama').value = program.pic_nama || '';
+            document.getElementById('picTel').value  = program.pic_tel  || '';
+            document.getElementById('programLocation').value = program.location || '';
 
-            // Hide type toggle during edit — type cannot change
+            // Show existing poster preview if available
+            var box = document.getElementById('posterPreviewBox');
+            var img = document.getElementById('posterPreviewImg');
+            var nameLbl = document.getElementById('posterFileName');
+            if (program.poster_image) {
+                img.src = baseUrl(program.poster_image);
+                box.classList.remove('hidden');
+                nameLbl.textContent = 'Poster sedia ada (pilih fail baru untuk ganti)';
+                nameLbl.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+                nameLbl.classList.add('hidden');
+            }
+
             document.getElementById('programTypeToggle').style.display = 'none';
             document.getElementById('parentProgramRow').classList.add('hidden');
 
@@ -956,6 +1173,8 @@
             document.getElementById('btnBatalEditProgram').style.display = 'none';
             document.getElementById('programTypeToggle').style.display = '';
             document.getElementById('parentProgramSelect').value = '';
+            document.getElementById('posterPreviewBox').classList.add('hidden');
+            document.getElementById('posterFileName').classList.add('hidden');
             setProgramType('utama');
             kemasKiniStatusPreview();
         }
@@ -992,6 +1211,10 @@
                 Swal.fire({ icon: 'error', title: 'Ralat', text: (err && err.message) ? err.message : 'Gagal memadam program.' });
             }
         }
+
+        // ============================================================
+        // ACCOUNT FUNCTIONS
+        // ============================================================
 
         async function muatAkaun(showLoading = true) {
             var schoolBody = document.getElementById('tableSchoolAccounts');
@@ -1267,6 +1490,10 @@
             }
         }
 
+        // ============================================================
+        // DATA FUNCTIONS (TRG, LUAR, AWAM)
+        // ============================================================
+
         async function muatDataLive(showLoading = true) {
             if (showLoading) {
                 Swal.fire({ title: 'Mengambil Data Live...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1412,59 +1639,466 @@
             }
         }
 
-        function tukarTab(tabId, btn) {
-            if (!document.getElementById('tab-' + tabId)) {
-                tabId = 'daftar';
+        // ============================================================
+        // PROGRAM POSTER / INFO EDITOR (inside Daftar tab)
+        // ============================================================
+
+        async function muatAcaraProgram() {
+            var grid = document.getElementById('eventGrid');
+            if (!grid) return;
+
+            grid.innerHTML = '<p class="col-span-3 text-center text-slate-400 text-sm py-12"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuatkan program...</p>';
+
+            try {
+                const res = await fetch('<?= base_url('admin/events') ?>?t=' + Date.now());
+                const result = await res.json();
+
+                // Support both result.programs and result.events (depending on backend)
+                var programs = result.programs || result.events || [];
+
+                if (!result.success || programs.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-3 text-center py-16">
+                            <i class="fa-solid fa-calendar-plus text-6xl text-slate-300 mb-4"></i>
+                            <p class="text-slate-400 text-sm">Tiada program ditemui.</p>
+                            <p class="text-slate-300 text-xs mt-1">Program akan muncul di sini untuk kemaskini poster.</p>
+                        </div>`;
+                    return;
+                }
+
+                grid.innerHTML = '';
+                programs.forEach(prog => {
+                    if (!prog.start_date || !prog.end_date) return;
+
+                    var today = new Date().toISOString().slice(0, 10);
+                    var eventStatus = '', eventStatusColor = '';
+                    if (prog.end_date < today) {
+                        eventStatus = 'Telah Tamat';
+                        eventStatusColor = 'bg-gray-100 text-gray-600';
+                    } else if (prog.start_date <= today && prog.end_date >= today) {
+                        eventStatus = 'Sedang Berlangsung';
+                        eventStatusColor = 'bg-green-100 text-green-700';
+                    } else {
+                        eventStatus = 'Akan Datang';
+                        eventStatusColor = 'bg-blue-100 text-blue-700';
+                    }
+
+                    var posterImg = prog.poster_image
+                        ? `<img src="${baseUrl(prog.poster_image)}" alt="${escapeHtml(prog.program_name || prog.event_title)}" class="w-full h-48 object-cover">`
+                        : `<div class="w-full h-48 bg-gradient-to-br from-[#8a0028]/20 to-[#ffc20e]/20 flex items-center justify-center">
+                               <i class="fa-solid fa-image text-5xl text-slate-300"></i>
+                           </div>`;
+
+                    var progName = prog.program_name || prog.event_title || '—';
+                    var statusBadge = prog.status === 'AKTIF'
+                        ? '<span class="bg-green-100 text-green-700 text-[9px] font-bold px-2 py-0.5 rounded-full">Aktif</span>'
+                        : '<span class="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-0.5 rounded-full">Tidak Aktif</span>';
+
+                    grid.innerHTML += `
+                        <div class="glass-card rounded-2xl overflow-hidden transition-all hover:scale-[1.02]">
+                            ${posterImg}
+                            <div class="p-5">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-[#520018] text-sm flex-1">${escapeHtml(progName)}</h3>
+                                    <div class="flex flex-col gap-1 items-end">
+                                        <span class="${eventStatusColor} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase whitespace-nowrap">${eventStatus}</span>
+                                        ${statusBadge}
+                                    </div>
+                                </div>
+                                ${prog.location ? `<p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot text-[#8a0028]"></i> ${escapeHtml(prog.location)}</p>` : ''}
+                                <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-calendar-days text-[#8a0028]"></i> ${formatTarikh(prog.start_date)} - ${formatTarikh(prog.end_date)}</p>
+                                ${prog.pic_nama ? `<p class="text-xs text-slate-500"><i class="fa-solid fa-user-tie text-[#8a0028]"></i> PIC: ${escapeHtml(prog.pic_nama)}</p>` : ''}
+                                ${prog.is_featured ? `<p class="text-[10px] text-yellow-600 mt-1"><i class="fa-solid fa-star"></i> Featured</p>` : ''}
+                                <button onclick="bukaEditEventProgram(${prog.id})"
+                                    class="mt-4 w-full bg-yellow-100 text-[#8a0028] py-2 rounded-xl text-xs font-bold hover:bg-yellow-200 transition-all">
+                                    <i class="fa-solid fa-pen"></i> Kemaskini Poster & Maklumat
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                console.error('muatAcaraProgram error:', err);
+                grid.innerHTML = '<p class="col-span-3 text-center text-red-400 text-sm py-12">Gagal memuatkan program.</p>';
             }
+        }
 
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
+        function bukaEditEventProgram(programId) {
+            fetch('<?= base_url('admin/events') ?>?t=' + Date.now())
+                .then(res => res.json())
+                .then(result => {
+                    var programs = result.programs || result.events || [];
+                    console.log('[bukaEditEventProgram] API result keys:', Object.keys(result), '| programs count:', programs.length, '| looking for id:', programId);
+                    var program = programs.find(p => p.id == programId);
+                    if (!program) {
+                        console.warn('[bukaEditEventProgram] IDs available:', programs.map(p => p.id));
+                        Swal.fire({ icon: 'error', title: 'Program tidak ditemui', text: 'ID: ' + programId + '. Semak Console untuk butiran.' });
+                        return;
+                    }
 
-            if (!btn) {
-                btn = document.querySelector('.nav-btn[onclick*="' + tabId + '"]');
+                    var progName = program.program_name || program.event_title || '';
+                    var posterPreview = program.poster_image
+                        ? `<img src="${baseUrl(program.poster_image)}" class="w-full max-h-40 object-cover rounded-lg mb-2">`
+                        : '';
+
+                    var html = `
+                        <div class="text-left space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Program *</label>
+                                <input id="swalEPProgramName" class="swal2-input" style="width:100%;margin:0;"
+                                       value="${escapeHtml(progName)}" required>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Tarikh Mula *</label>
+                                    <input id="swalEPStartDate" class="swal2-input" style="width:100%;margin:0;"
+                                           type="date" value="${program.start_date || ''}" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Tarikh Tamat *</label>
+                                    <input id="swalEPEndDate" class="swal2-input" style="width:100%;margin:0;"
+                                           type="date" value="${program.end_date || ''}" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Lokasi</label>
+                                <input id="swalEPLocation" class="swal2-input" style="width:100%;margin:0;"
+                                       value="${escapeHtml(program.location || '')}" placeholder="Lokasi program">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">PIC / Penganjur</label>
+                                <input id="swalEPPicNama" class="swal2-input" style="width:100%;margin:0;"
+                                       value="${escapeHtml(program.pic_nama || '')}" placeholder="Nama PIC">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">No. Telefon PIC</label>
+                                <input id="swalEPPicTel" class="swal2-input" style="width:100%;margin:0;"
+                                       value="${escapeHtml(program.pic_tel || '')}" placeholder="No. Telefon PIC">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Poster Program</label>
+                                ${posterPreview}
+                                <input id="swalEPPoster" class="swal2-input" style="width:100%;margin:0;"
+                                       type="file" accept="image/*">
+                                <p class="text-[10px] text-slate-400 mt-1">* Biarkan kosong jika tidak mahu tukar poster</p>
+                            </div>
+                            <div>
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" id="swalEPFeatured" ${program.is_featured ? 'checked' : ''}>
+                                    <span class="text-sm text-slate-600">Jadikan Program Pilihan (Featured)</span>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+
+                    Swal.fire({
+                        title: 'Kemaskini Program',
+                        html: html,
+                        showCancelButton: true,
+                        confirmButtonText: 'Simpan',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#8a0028',
+                        width: '650px',
+                        preConfirm: function() {
+                            var formData = new FormData();
+                            formData.append('program_name', document.getElementById('swalEPProgramName').value.trim());
+                            formData.append('start_date', document.getElementById('swalEPStartDate').value);
+                            formData.append('end_date', document.getElementById('swalEPEndDate').value);
+                            formData.append('location', document.getElementById('swalEPLocation').value.trim());
+                            formData.append('pic_nama', document.getElementById('swalEPPicNama').value.trim());
+                            formData.append('pic_tel', document.getElementById('swalEPPicTel').value.trim());
+                            formData.append('is_featured', document.getElementById('swalEPFeatured').checked ? 1 : 0);
+
+                            var posterFile = document.getElementById('swalEPPoster').files[0];
+                            if (posterFile) formData.append('poster_image', posterFile);
+
+                            if (!formData.get('program_name')) {
+                                Swal.showValidationMessage('Nama program diperlukan.');
+                                return false;
+                            }
+                            if (!formData.get('start_date') || !formData.get('end_date')) {
+                                Swal.showValidationMessage('Tarikh mula dan tarikh tamat diperlukan.');
+                                return false;
+                            }
+                            return formData;
+                        }
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            hantarUpdateEventProgram(programId, result.value);
+                        }
+                    });
+                });
+        }
+
+        async function hantarUpdateEventProgram(programId, formData) {
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch('<?= base_url('admin/events/update') ?>/' + programId, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                Swal.close();
+
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'Berjaya', text: result.message, timer: 1600, showConfirmButton: false });
+                    muatAcaraProgram();
+                    muatSenaraiProgram();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: result.message });
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire({ icon: 'error', title: 'Ralat', text: 'Gagal menyimpan maklumat program.' });
             }
+        }
 
-            document.querySelectorAll('.nav-btn').forEach(b => {
-                b.classList.remove('active-nav');
-                b.classList.add('text-yellow-100', 'hover:bg-white/10');
+        // ============================================================
+        // EVENTS FUNCTIONS
+        // ============================================================
+
+        function bukaBorangAcara(eventId = null) {
+            var isEdit = eventId !== null;
+            var title = isEdit ? 'Kemaskini Acara' : 'Tambah Acara Baharu';
+            
+            // Build program options
+            var progOptions = '<option value="">-- Tiada Program --</option>';
+            programCache.forEach(function(p) {
+                var selected = '';
+                if (isEdit) {
+                    // We'll set selected after fetching event data
+                }
+                progOptions += `<option value="${p.id}">${escapeHtml(p.nama)} (${escapeHtml(p.kod || p.id)})</option>`;
             });
-            if (btn) {
-                btn.classList.add('active-nav');
-                btn.classList.remove('text-yellow-100', 'hover:bg-white/10');
+            
+            var html = `
+                <div class="text-left space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Tajuk Acara *</label>
+                        <input id="swalEventTitle" class="swal2-input" style="width:100%;margin:0;" 
+                               placeholder="Tajuk acara" value="${isEdit ? '' : ''}" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Program Berkaitan</label>
+                        <select id="swalProgramId" class="swal2-input" style="width:100%;margin:0;">
+                            ${progOptions}
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Tarikh Mula *</label>
+                            <input id="swalStartDate" class="swal2-input" style="width:100%;margin:0;" 
+                                   type="date" value="" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Tarikh Tamat *</label>
+                            <input id="swalEndDate" class="swal2-input" style="width:100%;margin:0;" 
+                                   type="date" value="" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Lokasi</label>
+                        <input id="swalLocation" class="swal2-input" style="width:100%;margin:0;" 
+                               placeholder="Lokasi acara" value="">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Penerangan</label>
+                        <textarea id="swalDescription" class="swal2-input" style="width:100%;margin:0;min-height:80px;resize:vertical;" 
+                                  placeholder="Penerangan acara"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Poster Acara</label>
+                        <div id="swalPosterPreview" style="display:none;margin-bottom:8px;"></div>
+                        <input id="swalPoster" class="swal2-input" style="width:100%;margin:0;" 
+                               type="file" accept="image/*">
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="swalFeatured">
+                            <span class="text-sm text-slate-600">Jadikan Acara Pilihan (Featured)</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            
+            // If editing, fetch event data first
+            if (isEdit) {
+                fetch('<?= base_url('admin/events') ?>?t=' + Date.now())
+                    .then(res => res.json())
+                    .then(result => {
+                        var event = result.events.find(e => e.id === eventId);
+                        if (event) {
+                            showEventForm(event, title, isEdit);
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Acara tidak ditemui' });
+                        }
+                    });
+            } else {
+                showEventForm(null, title, isEdit);
             }
-
-            var isDaftar = tabId === 'daftar';
-            var isDataTab = ['trg', 'luar', 'awam'].includes(tabId);
-            document.getElementById('data-header').style.display    = isDataTab ? '' : 'none';
-            document.getElementById('stat-cards').style.display     = isDataTab ? '' : 'none';
-            document.getElementById('data-tables').style.display    = isDataTab ? '' : 'none';
-            document.getElementById('daftar-header').style.display  = isDaftar ? '' : 'none';
-
-            if (tabId === 'akaun') {
-                muatAkaun(false);
-            }
-
-            localStorage.setItem('adminDashboardTab', tabId);
-            var url = new URL(window.location.href);
-            url.searchParams.set('tab', tabId);
-            history.replaceState(null, '', url.toString());
         }
 
-        function getTabAktif() {
-            var active = document.querySelector('.tab-content.active');
-            return active ? active.id.replace('tab-', '') : 'daftar';
+        function showEventForm(event, title, isEdit) {
+            // Rebuild program options with selection
+            var progOptions = '<option value="">-- Tiada Program --</option>';
+            programCache.forEach(function(p) {
+                var selected = (event && event.program_id == p.id) ? 'selected' : '';
+                progOptions += `<option value="${p.id}" ${selected}>${escapeHtml(p.nama)} (${escapeHtml(p.kod || p.id)})</option>`;
+            });
+            
+            var html = `
+                <div class="text-left space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Tajuk Acara *</label>
+                        <input id="swalEventTitle" class="swal2-input" style="width:100%;margin:0;" 
+                               placeholder="Tajuk acara" value="${event ? escapeHtml(event.event_title) : ''}" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Program Berkaitan</label>
+                        <select id="swalProgramId" class="swal2-input" style="width:100%;margin:0;">
+                            ${progOptions}
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Tarikh Mula *</label>
+                            <input id="swalStartDate" class="swal2-input" style="width:100%;margin:0;" 
+                                   type="date" value="${event ? event.start_date : ''}" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Tarikh Tamat *</label>
+                            <input id="swalEndDate" class="swal2-input" style="width:100%;margin:0;" 
+                                   type="date" value="${event ? event.end_date : ''}" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Lokasi</label>
+                        <input id="swalLocation" class="swal2-input" style="width:100%;margin:0;" 
+                               placeholder="Lokasi acara" value="${event ? escapeHtml(event.location) : ''}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Penerangan</label>
+                        <textarea id="swalDescription" class="swal2-input" style="width:100%;margin:0;min-height:80px;resize:vertical;" 
+                                  placeholder="Penerangan acara">${event ? escapeHtml(event.event_description) : ''}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Poster Acara</label>
+                        ${event && event.poster_image ? `
+                            <div style="margin-bottom:8px;">
+                                <img src="${baseUrl(event.poster_image)}" style="max-height:100px;border-radius:8px;border:1px solid #e5e7eb;">
+                                <p class="text-[10px] text-slate-400 mt-1">Poster sedia ada</p>
+                            </div>
+                        ` : ''}
+                        <input id="swalPoster" class="swal2-input" style="width:100%;margin:0;" 
+                               type="file" accept="image/*">
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="swalFeatured" ${event && event.is_featured ? 'checked' : ''}>
+                            <span class="text-sm text-slate-600">Jadikan Acara Pilihan (Featured)</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            
+            Swal.fire({
+                title: title,
+                html: html,
+                showCancelButton: true,
+                confirmButtonText: isEdit ? 'Kemaskini' : 'Cipta',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#8a0028',
+                width: '650px',
+                preConfirm: function() {
+                    var formData = new FormData();
+                    formData.append('event_title', document.getElementById('swalEventTitle').value.trim());
+                    formData.append('program_id', document.getElementById('swalProgramId').value);
+                    formData.append('start_date', document.getElementById('swalStartDate').value);
+                    formData.append('end_date', document.getElementById('swalEndDate').value);
+                    formData.append('location', document.getElementById('swalLocation').value.trim());
+                    formData.append('event_description', document.getElementById('swalDescription').value.trim());
+                    formData.append('is_featured', document.getElementById('swalFeatured').checked ? 1 : 0);
+                    
+                    var posterFile = document.getElementById('swalPoster').files[0];
+                    if (posterFile) {
+                        formData.append('poster_image', posterFile);
+                    }
+                    
+                    if (!formData.get('event_title')) {
+                        Swal.showValidationMessage('Tajuk acara diperlukan.');
+                        return false;
+                    }
+                    if (!formData.get('start_date') || !formData.get('end_date')) {
+                        Swal.showValidationMessage('Tarikh mula dan tarikh tamat diperlukan.');
+                        return false;
+                    }
+                    
+                    return formData;
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    var url = isEdit 
+                        ? '<?= base_url('admin/events/update') ?>/' + event.id
+                        : '<?= base_url('admin/events/create') ?>';
+                    hantarAcara(url, result.value, isEdit);
+                }
+            });
         }
 
-        function bukaTabPermulaan() {
-            var params = new URLSearchParams(window.location.search);
-            var tab = params.get('tab') || localStorage.getItem('adminDashboardTab') || 'daftar';
-            var validTabs = ['daftar', 'trg', 'luar', 'awam', 'akaun'];
-
-            if (!validTabs.includes(tab)) {
-                tab = 'daftar';
+        async function hantarAcara(url, formData, isEdit) {
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            try {
+                const res = await fetch(url, { method: 'POST', body: formData });
+                const result = await res.json();
+                Swal.close();
+                
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'Berjaya', text: result.message, timer: 1600, showConfirmButton: false });
+                    muatAcaraProgram();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: result.message || 'Acara tidak dapat disimpan.' });
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire({ icon: 'error', title: 'Ralat', text: 'Gagal menyimpan acara.' });
             }
+        }
 
-            tukarTab(tab);
+        async function padamAcara(eventId, eventTitle) {
+            var confirm = await Swal.fire({
+                icon: 'warning',
+                title: 'Padam acara?',
+                text: 'Acara "' + eventTitle + '" akan dipadam.',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, padam',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc2626'
+            });
+            
+            if (!confirm.isConfirmed) return;
+            
+            Swal.fire({ title: 'Memadam...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            try {
+                const res = await fetch('<?= base_url('admin/events/delete') ?>/' + eventId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                });
+                const result = await res.json();
+                Swal.close();
+                
+                if (result.success) {
+                    Swal.fire({ icon: 'success', title: 'Berjaya', text: result.message, timer: 1600, showConfirmButton: false });
+                    muatAcaraProgram();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: result.message || 'Acara tidak dapat dipadam.' });
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire({ icon: 'error', title: 'Ralat', text: 'Gagal memadam acara.' });
+            }
         }
     </script>
 </body>

@@ -9,6 +9,7 @@ use App\Models\DaftarMuridModel;
 use App\Models\ProgramModel;
 use App\Models\PublicAccountModel;
 use App\Models\SchoolAccountModel;
+use App\Models\EventModel;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
@@ -67,6 +68,8 @@ class Admin extends BaseController
             $programName = trim((string) $this->request->getPost('program_name'));
             $startDate   = trim((string) $this->request->getPost('start_date'));
             $endDate     = trim((string) $this->request->getPost('end_date'));
+            $picNama     = trim((string) $this->request->getPost('pic_nama'));
+            $picTel      = trim((string) $this->request->getPost('pic_tel'));
 
             if ($programCode === '' || $programName === '' || $startDate === '' || $endDate === '') {
                 return $this->response->setStatusCode(422)->setJSON([
@@ -112,6 +115,8 @@ class Admin extends BaseController
                 'start_date'   => $startDate,
                 'end_date'     => $endDate,
                 'status'       => $status,
+                'pic_nama'     => $picNama,
+                'pic_tel'      => $picTel,
             ]);
 
             if (!$saved) {
@@ -145,6 +150,8 @@ class Admin extends BaseController
             $programName = trim((string) $this->request->getPost('program_name'));
             $startDate   = trim((string) $this->request->getPost('start_date'));
             $endDate     = trim((string) $this->request->getPost('end_date'));
+            $picNama     = trim((string) $this->request->getPost('pic_nama'));
+            $picTel      = trim((string) $this->request->getPost('pic_tel'));
 
             if ($parentCode === '' || $programCode === '' || $programName === '' || $startDate === '' || $endDate === '') {
                 return $this->response->setStatusCode(422)->setJSON([
@@ -207,6 +214,8 @@ class Admin extends BaseController
                 'start_date'   => $startDate,
                 'end_date'     => $endDate,
                 'status'       => $status,
+                'pic_nama'     => $picNama,
+                'pic_tel'      => $picTel,
             ]);
 
             if (!$saved) {
@@ -241,6 +250,8 @@ class Admin extends BaseController
             $programName = trim((string) $this->request->getPost('program_name'));
             $startDate   = trim((string) $this->request->getPost('start_date'));
             $endDate     = trim((string) $this->request->getPost('end_date'));
+            $picNama     = trim((string) $this->request->getPost('pic_nama'));
+            $picTel      = trim((string) $this->request->getPost('pic_tel'));
 
             // Only touch parent_id if the client explicitly sent this field.
             // getPost() returns null when the key is absent from the request body,
@@ -302,6 +313,8 @@ class Admin extends BaseController
                 'start_date'   => $startDate,
                 'end_date'     => $endDate,
                 'status'       => $programModel->calculateStatus($startDate, $endDate),
+                'pic_nama'     => $picNama,
+                'pic_tel'      => $picTel,
             ];
 
             if ($parentCodeProvided) {
@@ -519,6 +532,8 @@ class Admin extends BaseController
                     'end_date'   => $prog['end_date'],
                     'parent_id'  => $parentId,
                     'parent_kod' => $parentKod,
+                    'pic_nama'   => $prog['pic_nama'] ?? '',
+                    'pic_tel'    => $prog['pic_tel']  ?? '',
                 ];
             }
 
@@ -971,5 +986,120 @@ class Admin extends BaseController
         }
 
         return $result;
+    }
+
+    public function getEvents()
+{
+    try {
+        $programModel = new \App\Models\ProgramModel();
+        $programModel->refreshProgramStatuses();
+        
+        $programs = $programModel
+            ->orderBy('start_date', 'DESC')
+            ->findAll();
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'programs' => $programs
+        ]);
+    } catch (\Throwable $e) {
+        return $this->serverErrorResponse($e, 'getEvents');
+    }
+}
+
+/**
+ * Update program with poster and event details
+ */
+public function updateEvent($programId)
+{
+    try {
+        $programModel = new \App\Models\ProgramModel();
+        $program = $programModel->find($programId);
+        
+        if (!$program) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Program tidak ditemui.'
+            ]);
+        }
+        
+        $programName = trim($this->request->getPost('program_name'));
+        $startDate = $this->request->getPost('start_date');
+        $endDate = $this->request->getPost('end_date');
+        $location = trim($this->request->getPost('location'));
+        $picNama = trim($this->request->getPost('pic_nama'));
+        $picTel = trim($this->request->getPost('pic_tel'));
+        $isFeatured = $this->request->getPost('is_featured') ? 1 : 0;
+        
+        if (!$programName || !$startDate || !$endDate) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Nama program, tarikh mula dan tarikh tamat diperlukan.'
+            ]);
+        }
+        
+        if ($endDate < $startDate) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Tarikh tamat mesti sama atau selepas tarikh mula.'
+            ]);
+        }
+        
+        // Handle poster upload
+        $posterPath = $program['poster_image'] ?? null;
+        $posterFile = $this->request->getFile('poster_image');
+        if ($posterFile && $posterFile->isValid() && !$posterFile->hasMoved()) {
+            // Delete old poster if exists
+            if ($posterPath && file_exists(FCPATH . $posterPath)) {
+                unlink(FCPATH . $posterPath);
+            }
+            $uploadPath = FCPATH . 'uploads/posters/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+            $newName = $posterFile->getRandomName();
+            $posterFile->move($uploadPath, $newName);
+            $posterPath = 'uploads/posters/' . $newName;
+        }
+        
+        // Update status based on dates
+        $today = date('Y-m-d');
+        if ($endDate < $today) {
+            $status = 'TIDAK AKTIF';
+        } else {
+            $status = 'AKTIF';
+        }
+        
+        $data = [
+            'program_name' => $programName,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'location' => $location,
+            'pic_nama' => $picNama,
+            'pic_tel' => $picTel,
+            'is_featured' => $isFeatured,
+            'status' => $status
+        ];
+        
+        if ($posterPath) {
+            $data['poster_image'] = $posterPath;
+        }
+        
+        $updated = $programModel->update($programId, $data);
+        
+        if (!$updated) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengemaskini program.'
+            ]);
+        }
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Program berjaya dikemaskini.'
+        ]);
+        } catch (\Throwable $e) {
+        return $this->serverErrorResponse($e, 'updateEvent');
+        }
     }
 }
