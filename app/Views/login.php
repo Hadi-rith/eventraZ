@@ -369,7 +369,7 @@
         <i class="fa-solid fa-user-shield"></i> Log Masuk Admin
     </button>
 
-    <p class="watermark">developed by <span>Hadi Harith</span></p>
+    <p class="watermark">developed by <span>Hadi</span></p>
 </div>
 
 <script>
