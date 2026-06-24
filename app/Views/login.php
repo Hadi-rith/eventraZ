@@ -211,6 +211,20 @@
         /* Panels */
         .panel { display: none; }
         .panel.active { display: block; }
+
+        /* Watermark */
+        .watermark {
+            margin-top: 1.5rem;
+            font-size: 10px;
+            color: #cccccc;
+            letter-spacing: 0.08em;
+            text-align: center;
+            font-weight: 500;
+        }
+        .watermark span {
+            color: #d4a0b0;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -354,6 +368,8 @@
     <button class="btn-admin" id="adminBtn" onclick="toggleAdmin()">
         <i class="fa-solid fa-user-shield"></i> Log Masuk Admin
     </button>
+
+    <p class="watermark">developed by <span>Hadi</span></p>
 </div>
 
 <script>
