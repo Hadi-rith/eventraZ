@@ -58,7 +58,7 @@ $isSuperAdmin = ($role === 'super_admin');
 <div class="sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
     <div>
         <div class="mb-8 border-b border-white/15 pb-5 text-center">
-            <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ" class="brand-logo mx-auto mb-3">
+            <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EvenTraZ" class="brand-logo mx-auto mb-3">
             <h1 class="text-xl font-black text-white tracking-wider">EvenTraZ Admin</h1>
             <p class="text-[9px] text-yellow-200 uppercase font-bold mt-1">Event Tracking, Registration &amp; Engagement Zone</p>
             <div class="mt-3 flex flex-col items-center gap-1">
