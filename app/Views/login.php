@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EventraZ - Log Masuk</title>
+    <title>EvenTraZ - Log Masuk</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -232,7 +232,7 @@
 <div class="card">
     <div class="logo-wrap">
         <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ Logo">
-        <h1>EventraZ</h1>
+        <h1>EvenTraZ</h1>
         <p>Portal Log Masuk Rasmi</p>
     </div>
 

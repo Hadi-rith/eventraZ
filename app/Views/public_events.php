@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EventraZ - Acara</title>
+    <title>EvenTraZ - Acara</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -76,8 +76,8 @@
     <div class="sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
         <div>
             <div class="mb-8 border-b border-white/15 pb-4 text-center">
-                <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ" class="brand-logo mx-auto mb-3">
-                <h1 class="text-lg font-black text-white tracking-wider">EventraZ</h1>
+                <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EvenTraZ" class="brand-logo mx-auto mb-3">
+                <h1 class="text-lg font-black text-white tracking-wider">EvenTraZ</h1>
                 <?php if (session('logged_in')): ?>
                     <p class="text-[10px] text-white mt-2 font-semibold"><?= esc(session('name')) ?></p>
                     <p class="text-[9px] text-yellow-100"><?= esc(session('email')) ?></p>

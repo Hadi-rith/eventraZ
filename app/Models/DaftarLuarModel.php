@@ -6,8 +6,12 @@ use CodeIgniter\Model;
 
 class DaftarLuarModel extends Model
 {
-    protected $table = 'daftar_luar';
+    protected $table      = 'daftar_luar';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['timestamp', 'program_name', 'nama_sekolah', 'kod_sekolah', 'tel', 'email', 'kategori', 'status'];
+    protected $allowedFields = [
+        'program_id', 'program_name',
+        'nama_sekolah', 'kod_sekolah', 'tel', 'email',
+        'kategori', 'status',
+    ];
     protected $useTimestamps = false;
 }
