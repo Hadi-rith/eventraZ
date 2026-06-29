@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\SchoolAccountModel;
 use App\Models\PublicAccountModel;
 use App\Models\AdminAccountModel;
+use App\Validation\ValidationRules;
 
 class Login extends BaseController
 {
@@ -19,6 +20,14 @@ class Login extends BaseController
 
     public function proses()
     {
+        // ── Server-side validation ────────────────────────────────────
+        if (!$this->validate(ValidationRules::LOGIN)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => implode(' ', $this->validator->getErrors()),
+            ]);
+        }
+
         $username = trim((string) $this->request->getPost('username'));
         $password = trim((string) $this->request->getPost('password'));
         $role     = $this->request->getPost('role') ?: 'school';
@@ -35,7 +44,7 @@ class Login extends BaseController
     }
 
     // ------------------------------------------------------------------
-    // Admin login — Super Admin via .env, regular Admin via DB table
+    // Admin login — Super Admin via .env, regular Admin via DB
     // ------------------------------------------------------------------
 
     private function processAdminLogin(string $username, string $password)
@@ -46,11 +55,11 @@ class Login extends BaseController
 
         if ($username === $superUser && $password === $superPass) {
             $this->session->set([
-                'logged_in'   => true,
-                'role'        => 'super_admin',
-                'admin_id'    => null,          // Super Admin has no DB row
-                'username'    => $username,
-                'admin_name'  => 'Super Admin',
+                'logged_in'  => true,
+                'role'       => 'super_admin',
+                'admin_id'   => null,
+                'username'   => $username,
+                'admin_name' => 'Super Admin',
             ]);
             return $this->response->setJSON([
                 'success'  => true,
@@ -58,17 +67,17 @@ class Login extends BaseController
             ]);
         }
 
-        // Regular Admin — look up admin_accounts table
+        // Regular Admin — DB lookup
         $model = new AdminAccountModel();
         $admin = $model->findByUsername($username);
 
         if ($admin && $admin['password'] === $password) {
             $this->session->set([
-                'logged_in'   => true,
-                'role'        => 'admin',
-                'admin_id'    => (int) $admin['id'],
-                'username'    => $admin['username'],
-                'admin_name'  => $admin['name'],
+                'logged_in'  => true,
+                'role'       => 'admin',
+                'admin_id'   => (int) $admin['id'],
+                'username'   => $admin['username'],
+                'admin_name' => $admin['name'],
             ]);
             return $this->response->setJSON([
                 'success'  => true,
@@ -88,6 +97,14 @@ class Login extends BaseController
 
     private function processPublicLogin(string $email, string $password)
     {
+        // Validate email format for awam login
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Format emel tidak sah.',
+            ]);
+        }
+
         $model = new PublicAccountModel();
         $user  = $model->where('email', $email)->first();
 
@@ -101,7 +118,7 @@ class Login extends BaseController
             ]);
             return $this->response->setJSON([
                 'success'  => true,
-                'redirect' => 'public',
+                'redirect' => 'public/portal',
             ]);
         }
 
@@ -157,33 +174,27 @@ class Login extends BaseController
             return redirect()->to('/school/portal');
         }
 
-        return redirect()->to('/public');
+        return redirect()->to('/public/portal');
     }
 
     // ------------------------------------------------------------------
-    // Self-registration (unchanged logic, kept here for completeness)
+    // Self-registration
     // ------------------------------------------------------------------
 
     public function signupSchool()
     {
+        // ── Server-side validation ────────────────────────────────────
+        if (!$this->validate(ValidationRules::SIGNUP_SCHOOL)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => implode(' ', $this->validator->getErrors()),
+            ]);
+        }
+
         $schoolCode = strtoupper(trim((string) $this->request->getPost('school_code')));
         $schoolName = trim((string) $this->request->getPost('school_name'));
         $email      = strtolower(trim((string) $this->request->getPost('email')));
         $password   = trim((string) $this->request->getPost('password'));
-
-        if ($schoolCode === '' || $schoolName === '' || $email === '' || $password === '') {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'message' => 'Sila lengkapkan semua maklumat sekolah.',
-            ]);
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'message' => 'Format emel tidak sah.',
-            ]);
-        }
 
         $model = new SchoolAccountModel();
         if ($model->where('school_code', $schoolCode)->orWhere('email', $email)->first()) {
@@ -208,23 +219,17 @@ class Login extends BaseController
 
     public function signupAwam()
     {
+        // ── Server-side validation ────────────────────────────────────
+        if (!$this->validate(ValidationRules::SIGNUP_AWAM)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => implode(' ', $this->validator->getErrors()),
+            ]);
+        }
+
         $name     = trim((string) $this->request->getPost('name'));
         $email    = strtolower(trim((string) $this->request->getPost('email')));
         $password = trim((string) $this->request->getPost('password'));
-
-        if ($name === '' || $email === '' || $password === '') {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'message' => 'Sila lengkapkan semua maklumat awam.',
-            ]);
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'message' => 'Format emel tidak sah.',
-            ]);
-        }
 
         $model = new PublicAccountModel();
         if ($model->where('email', $email)->first()) {

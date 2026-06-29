@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvenTraZ - Portal Sekolah</title>
+    <title>EventraZ - Portal Sekolah</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -34,22 +34,19 @@
         .modal-overlay.open { display: flex; }
         .pic-info-card { background: linear-gradient(135deg, #fff8e7, #fff5d6); border: 1px solid #ffc20e; border-radius: 16px; padding: 16px 20px; margin-top: 12px; }
         .guru-card { background: rgba(255,255,255,.7); border: 1px solid rgba(138,0,40,.12); border-radius: 16px; padding: 16px; position: relative; }
+        .murid-card { background: rgba(255,255,255,.7); border: 1px solid rgba(138,0,40,.10); border-radius: 16px; padding: 16px; }
         .capacity-bar { height: 8px; border-radius: 99px; background: #e5e7eb; overflow: hidden; margin-top: 4px; }
         .capacity-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
-        @media (max-width: 900px) {
-            body.flex { display: block; }
-            .sidebar { position: relative; width: 100%; height: auto; }
-            .ml-\[280px\] { margin-left: 0 !important; }
-        }
     </style>
+    <?= view('partials/mobile_responsive', ['mobileLayout' => 'sidebar']) ?>
 </head>
-<body class="flex">
+<body class="flex app-shell">
 
-    <div class="sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
+    <div class="sidebar app-sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
         <div>
             <div class="mb-8 border-b border-white/15 pb-4 text-center">
-                <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EvenTraZ" class="brand-logo mx-auto mb-3">
-                <h1 class="text-lg font-black text-white tracking-widest">EvenTraZ Portal</h1>
+                <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ" class="brand-logo mx-auto mb-3">
+                <h1 class="text-lg font-black text-white tracking-widest">EventraZ Portal</h1>
                 <p class="text-[9px] text-yellow-200 font-bold mt-1">Sekolah Terengganu</p>
                 <p class="text-[10px] text-white mt-2 font-semibold"><?= esc(session('school_name')) ?></p>
                 <p class="text-[9px] text-yellow-100"><?= esc(session('school_code')) ?></p>
@@ -74,7 +71,7 @@
         </a>
     </div>
 
-    <div class="ml-[280px] w-full p-10 flex justify-center items-start min-h-screen py-12">
+    <div class="app-main ml-[280px] w-full p-10 flex justify-center items-start min-h-screen py-12">
 
         <!-- ── DAFTAR SECTION ── -->
         <div id="seksyenDaftar" class="page-section active w-full max-w-4xl">
@@ -172,13 +169,21 @@
                         <p id="guruKosongMsg" class="text-xs text-red-500 mt-2" style="display:none">Sekurang-kurangnya satu Guru Pengiring diperlukan.</p>
                     </div>
 
-                    <!-- BILANGAN MURID -->
+                    <!-- BILANGAN MURID + MURID ENTRIES -->
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Bilangan Murid Terlibat *</label>
-                        <input type="number" name="bilMurid" id="bilMurid" min="1" oninput="sahkanBilMurid()"
-                            placeholder="Bilangan murid"
-                            class="eventraz-field w-full p-4 border rounded-2xl text-sm outline-none transition-all" required>
-                        <p id="bilMuridInfo" class="text-[10px] text-slate-400 mt-1.5 ml-1"></p>
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase ml-1">Bilangan Murid Terlibat *</label>
+                                <p id="bilMuridInfo" class="text-[10px] text-slate-400 ml-1 mt-0.5"></p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select id="bilMurid" onchange="janaBorangMurid()"
+                                    class="program-select eventraz-field p-3 border rounded-2xl text-sm outline-none transition-all min-w-[110px]">
+                                    <option value="">-- Bil. Murid --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="boxMurid" class="space-y-3"></div>
                         <p id="bilMuridError" class="text-[10px] text-red-500 mt-1 ml-1" style="display:none"></p>
                     </div>
 
@@ -199,7 +204,7 @@
                         <p class="text-xs text-slate-400 mt-1">Senarai program yang telah didaftarkan.</p>
                     </div>
                     <button onclick="muatPendaftaranSaya()" class="text-xs text-[#8a0028] font-bold hover:underline flex items-center gap-1">
-                        <i class="fa-solid fa-rotate-right"></i> Muat Semula
+                        <i class="fa-solid fa-rotate-right"></i> Refresh
                     </button>
                 </div>
                 <div id="senaraiPendaftaranSaya">
@@ -221,9 +226,7 @@
         </div>
     </div>
 
-    <p class="fixed bottom-3 right-4 text-[10px] text-slate-300 tracking-wide pointer-events-none select-none z-50">
-        developed by <span class="text-[#d4a0b0] font-semibold">Hadi</span>
-    </p>
+    <?= view('partials/footer_watermark') ?>
 
     <script>
         var guruCount = 0;
@@ -247,9 +250,23 @@
         }
 
         // ── On load ──
-        window.onload = function () {
-            muatProgramUtama();
+        window.onload = async function () {
+            await muatProgramUtama();
             tambahGuru(); // start with 1 guru
+            kemasKiniMaxMurid(); // populate murid dropdown based on 1 guru
+
+            // Pre-select program from URL ?program=ID (coming from Acara page)
+            var urlParams = new URLSearchParams(window.location.search);
+            var preProgram = urlParams.get('program');
+            if (preProgram) {
+                var drop = document.getElementById('mainProgList');
+                drop.value = preProgram;
+                if (drop.value) {
+                    await onMainProgramChange();
+                    document.getElementById('regFormTRG').scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
             // Pre-fill school info from session
             var namaInput = document.getElementById('namaSekolahInput');
             var kodInput  = document.getElementById('kodSekolahInput');
@@ -421,19 +438,70 @@
             var maxMurid = n * 10;
             var info = document.getElementById('bilMuridInfo');
             info.textContent = n + ' Guru Pengiring → Maksimum ' + maxMurid + ' murid';
-            sahkanBilMurid();
+
+            // Rebuild murid count dropdown
+            var drop = document.getElementById('bilMurid');
+            var prev = parseInt(drop.value || 0);
+            drop.innerHTML = '<option value="">-- Bil. Murid --</option>';
+            for (var i = 1; i <= maxMurid; i++) {
+                var opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = i + ' murid';
+                if (i === prev) opt.selected = true;
+                drop.appendChild(opt);
+            }
+
+            // If previous selection exceeds new max, trim murid boxes
+            if (prev > maxMurid) {
+                drop.value = maxMurid;
+            }
+            janaBorangMurid();
+        }
+
+        function janaBorangMurid() {
+            var bil = parseInt(document.getElementById('bilMurid').value || 0);
+            var box = document.getElementById('boxMurid');
+            var existing = box.querySelectorAll('.murid-card');
+
+            // Add cards if needed
+            for (var i = existing.length; i < bil; i++) {
+                var div = document.createElement('div');
+                div.className = 'murid-card p-4 bg-white/60 border border-white/80 rounded-2xl';
+                div.innerHTML = `<p class="text-xs font-bold text-[#8a0028] mb-3"><i class="fa-solid fa-user-graduate mr-1"></i> Murid <span class="murid-num">${i + 1}</span></p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Nama Murid *</label>
+                            <input type="text" name="namaMurid_${i}" placeholder="Nama penuh murid"
+                                class="eventraz-field w-full p-3 border rounded-2xl text-sm outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">No. MyKid / IC *</label>
+                            <input type="text" name="icMurid_${i}" placeholder="Tanpa sengkang"
+                                class="eventraz-field w-full p-3 border rounded-2xl text-sm outline-none" required>
+                        </div>
+                    </div>`;
+                box.appendChild(div);
+            }
+
+            // Remove excess cards
+            var cards = box.querySelectorAll('.murid-card');
+            for (var j = cards.length - 1; j >= bil; j--) {
+                cards[j].remove();
+            }
+
+            // Renumber
+            box.querySelectorAll('.murid-card').forEach(function(card, idx) {
+                var num = card.querySelector('.murid-num');
+                if (num) num.textContent = idx + 1;
+                // Update name attributes to keep indexes sequential
+                card.querySelectorAll('input').forEach(function(inp) {
+                    inp.name = inp.name.replace(/_\d+$/, '_' + idx);
+                });
+            });
         }
 
         function sahkanBilMurid() {
-            var val  = parseInt(document.getElementById('bilMurid').value || 0);
-            var max  = bilGuruAktif() * 10;
-            var errEl = document.getElementById('bilMuridError');
-            if (val > max) {
-                errEl.textContent = 'Melebihi had! ' + bilGuruAktif() + ' Guru Pengiring membenarkan maksimum ' + max + ' murid sahaja.';
-                errEl.style.display = '';
-            } else {
-                errEl.style.display = 'none';
-            }
+            // kept for compatibility — logic now handled in kemasKiniMaxMurid
         }
 
         function kumpulDataGuru() {
@@ -467,10 +535,24 @@
             }
             document.getElementById('guruKosongMsg').style.display = 'none';
 
-            // Validate student count
-            var bilMurid = parseInt(document.getElementById('bilMurid').value || 0);
+            // Collect murid entries
+            var muridCards = document.querySelectorAll('#boxMurid .murid-card');
+            var muridList  = [];
+            var muridValid = true;
+            muridCards.forEach(function(card, i) {
+                var namaInput = card.querySelector('input[name^="namaMurid"]');
+                var icInput   = card.querySelector('input[name^="icMurid"]');
+                var nama = namaInput ? namaInput.value.trim() : '';
+                var ic   = icInput   ? icInput.value.trim()   : '';
+                if (!nama || !ic) { muridValid = false; }
+                muridList.push({ nama, ic });
+            });
+
+            var bilMurid = muridList.length;
             var maxMurid = guruList.length * 10;
-            if (bilMurid < 1) { Swal.fire({ icon: 'warning', title: 'Bilangan murid tidak sah', text: 'Sila masukkan bilangan murid.' }); return; }
+
+            if (bilMurid < 1) { Swal.fire({ icon: 'warning', title: 'Tiada murid', text: 'Sila pilih bilangan murid dan isi maklumat mereka.' }); return; }
+            if (!muridValid)  { Swal.fire({ icon: 'warning', title: 'Maklumat murid tidak lengkap', text: 'Sila lengkapkan nama dan No. MyKid/IC bagi setiap murid.' }); return; }
             if (bilMurid > maxMurid) {
                 Swal.fire({ icon: 'warning', title: 'Melebihi had murid', text: guruList.length + ' Guru Pengiring membenarkan maksimum ' + maxMurid + ' murid.' }); return;
             }
@@ -487,6 +569,10 @@
                 body.append('namaGuru_' + i, g.nama);
                 body.append('icGuru_' + i,   g.ic);
             });
+            muridList.forEach(function(m, i) {
+                body.append('namaMurid_' + i, m.nama);
+                body.append('icMurid_' + i,   m.ic);
+            });
 
             Swal.fire({ title: 'Menghantar pendaftaran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -499,6 +585,8 @@
                     form.reset();
                     guruCount = 0;
                     document.getElementById('boxGuru').innerHTML = '';
+                    document.getElementById('boxMurid').innerHTML = '';
+                    document.getElementById('bilMurid').innerHTML = '<option value="">-- Bil. Murid --</option>';
                     tambahGuru();
                     muatProgramUtama();
                 } else {
@@ -524,8 +612,10 @@
                     var today = new Date().toISOString().slice(0,10);
                     var statusLabel = !reg.end_date ? 'Tidak diketahui' : (reg.end_date < today ? 'Selesai' : (reg.start_date <= today ? 'Sedang Berlangsung' : 'Akan Datang'));
                     var statusCls   = reg.end_date < today ? 'bg-slate-100 text-slate-500' : (reg.start_date <= today ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700');
-                    var guruList    = Array.isArray(reg.guru) ? reg.guru : [];
-                    var guruHtml    = guruList.length ? guruList.map(g => `<span class="inline-block bg-yellow-50 border border-yellow-200 text-[#8a0028] text-[10px] font-bold px-2 py-0.5 rounded-lg mr-1 mb-1">${g.nama_guru}</span>`).join('') : '<span class="text-slate-400 text-xs">—</span>';
+                    var guruList  = Array.isArray(reg.guru)  ? reg.guru  : [];
+                    var muridList = Array.isArray(reg.murid) ? reg.murid : [];
+                    var guruHtml  = guruList.length  ? guruList.map(g  => `<span class="inline-block bg-yellow-50 border border-yellow-200 text-[#8a0028] text-[10px] font-bold px-2 py-0.5 rounded-lg mr-1 mb-1">${g.nama_guru}</span>`).join('') : '<span class="text-slate-400 text-xs">—</span>';
+                    var muridHtml = muridList.length ? muridList.map((m, i) => `<div class="flex justify-between text-[10px] py-0.5 border-b border-white/60 last:border-0"><span class="text-slate-500">${i+1}. ${m.nama_murid}</span><span class="text-slate-400">${m.ic_murid}</span></div>`).join('') : '<span class="text-slate-400 text-xs">—</span>';
                     return `<div class="border border-white/80 bg-white/60 rounded-2xl p-5 mb-4">
                         <div class="flex justify-between items-start mb-3">
                             <div>
@@ -540,10 +630,14 @@
                             <div><span class="text-slate-400">Bil. Murid</span><br><b class="text-[#8a0028]">${reg.bil_murid}</b></div>
                             <div><span class="text-slate-400">Status</span><br><b>${reg.status}</b></div>
                         </div>
-                        <div class="mb-2">
+                        <div class="mb-3">
                             <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Guru Pengiring</p>
                             ${guruHtml}
                         </div>
+                        ${muridList.length ? `<div class="mb-3">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Senarai Murid</p>
+                            <div class="bg-white/50 rounded-xl p-2">${muridHtml}</div>
+                        </div>` : ''}
                         <div class="text-[10px] text-slate-400">PIC: ${reg.pic_nama || '—'} | ${reg.pic_tel || '—'}</div>
                     </div>`;
                 }).join('');

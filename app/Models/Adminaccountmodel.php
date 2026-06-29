@@ -56,14 +56,16 @@ class AdminAccountModel extends Model
             $admin['active_programs']    = $active;
             $admin['completed_programs'] = $completed;
 
-            // Total registrations across all tables
-            $totalRegs = 0;
+            // Total registrations across school and awam tables
+            $sekolahRegs = 0;
+            $awamRegs    = 0;
             if (!empty($programIds)) {
-                $totalRegs += (int) $db->table('daftar_sekolah')->whereIn('program_id', $programIds)->countAllResults();
-                $totalRegs += (int) $db->table('daftar_awam')->whereIn('program_id', $programIds)->countAllResults();
-                $totalRegs += (int) $db->table('daftar_luar')->whereIn('program_id', $programIds)->countAllResults();
+                $sekolahRegs = (int) $db->table('daftar_sekolah')->whereIn('program_id', $programIds)->countAllResults();
+                $awamRegs    = (int) $db->table('daftar_awam')->whereIn('program_id', $programIds)->countAllResults();
             }
-            $admin['total_registrations'] = $totalRegs;
+            $admin['total_registrations']   = $sekolahRegs + $awamRegs;
+            $admin['sekolah_registrations'] = $sekolahRegs;
+            $admin['awam_registrations']    = $awamRegs;
 
             unset($admin['password']); // never expose password
         }

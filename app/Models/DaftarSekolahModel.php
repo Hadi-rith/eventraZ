@@ -11,7 +11,7 @@ class DaftarSekolahModel extends Model
     protected $allowedFields = [
         'program_id', 'program_name',
         'nama_sekolah', 'kod_sekolah', 'email_sekolah', 'tel_sekolah',
-        'bil_murid', 'status',
+        'bil_murid', 'status', 'created_at',
     ];
     protected $useTimestamps = false;
 }

@@ -32,21 +32,20 @@
         .eventraz-btn:hover { filter: brightness(1.08); }
         .eventraz-field { background: rgba(255,255,255,.58) !important; border-color: rgba(138,0,40,.15) !important; }
         .eventraz-field:focus { box-shadow: 0 0 0 3px rgba(255,194,14,.28); }
-        select, select option { background: #fff !important; color: #111827 !important; }
+        select { background: #fff !important; color: #111827 !important; }
+        select option { background: #fff !important; color: #111827 !important; font-weight: 500; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .super-admin-badge { background: linear-gradient(135deg, #ffc20e, #e6a800); color: #520018; font-size: 9px; font-weight: 900; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .08em; }
         .admin-badge { background: rgba(255,255,255,.2); color: #fef3c7; font-size: 9px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; }
         .capacity-bar { height: 6px; border-radius: 99px; background: #e5e7eb; overflow: hidden; }
         .capacity-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
-        @media (max-width: 900px) {
-            body.flex { display: block; }
-            .sidebar { position: relative; width: 100%; height: auto; }
-            .ml-\[280px\] { margin-left: 0 !important; }
-        }
+        .count-link { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+        .count-link:hover { color: #520018; }
     </style>
+    <?= view('partials/mobile_responsive', ['mobileLayout' => 'sidebar']) ?>
 </head>
-<body class="flex">
+<body class="flex app-shell">
 
 <?php
 $role      = session('role');
@@ -55,11 +54,11 @@ $isSuperAdmin = ($role === 'super_admin');
 ?>
 
 <!-- Sidebar -->
-<div class="sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
+<div class="sidebar app-sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
     <div>
         <div class="mb-8 border-b border-white/15 pb-5 text-center">
-            <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EvenTraZ" class="brand-logo mx-auto mb-3">
-            <h1 class="text-xl font-black text-white tracking-wider">EvenTraZ Admin</h1>
+            <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ" class="brand-logo mx-auto mb-3">
+            <h1 class="text-xl font-black text-white tracking-wider">EventraZ Admin</h1>
             <p class="text-[9px] text-yellow-200 uppercase font-bold mt-1">Event Tracking, Registration &amp; Engagement Zone</p>
             <div class="mt-3 flex flex-col items-center gap-1">
                 <?php if ($isSuperAdmin): ?>
@@ -75,6 +74,7 @@ $isSuperAdmin = ($role === 'super_admin');
         <div class="mb-6" id="filterWrap">
             <label class="block text-[10px] font-bold text-yellow-100 uppercase mb-2 ml-1 tracking-wider">Tapis Program</label>
             <select id="filterProgram" onchange="tapisSemuaData()"
+                style="color:#111827;background:#fff;"
                 class="w-full p-3 bg-white border border-white/70 rounded-xl text-xs text-slate-900 outline-none focus:ring-2 focus:ring-yellow-300">
                 <option value="SEMUA">-- SEMUA PROGRAM --</option>
             </select>
@@ -86,17 +86,17 @@ $isSuperAdmin = ($role === 'super_admin');
                 <i class="fa-solid fa-calendar-plus"></i> DAFTAR PROGRAM
             </button>
             <div class="border-t border-white/15 my-2"></div>
-            <button onclick="tukarTab('trg', this)"
+            <button onclick="tukarTab('sekolah', this)"
                 class="nav-btn w-full text-left p-3.5 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
-                <i class="fa-solid fa-layer-group"></i> SEKOLAH TRG
-            </button>
-            <button onclick="tukarTab('luar', this)"
-                class="nav-btn w-full text-left p-3.5 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
-                <i class="fa-solid fa-school-flag"></i> SEKOLAH LUAR
+                <i class="fa-solid fa-school"></i> SEKOLAH
             </button>
             <button onclick="tukarTab('awam', this)"
                 class="nav-btn w-full text-left p-3.5 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
                 <i class="fa-solid fa-user-group"></i> ORANG AWAM
+            </button>
+            <button onclick="tukarTab('program-stats', this)"
+                class="nav-btn w-full text-left p-3.5 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
+                <i class="fa-solid fa-chart-pie"></i> STATISTIK PROGRAM
             </button>
             <div class="border-t border-white/15 my-2"></div>
             <button onclick="tukarTab('akaun', this)"
@@ -118,7 +118,7 @@ $isSuperAdmin = ($role === 'super_admin');
 </div>
 
 <!-- Main -->
-<div class="ml-[280px] w-full p-8 min-h-screen">
+<div class="app-main ml-[280px] w-full p-8 min-h-screen">
 
     <!-- Daftar Program Tab -->
     <div id="tab-daftar" class="tab-content active">
@@ -225,6 +225,16 @@ $isSuperAdmin = ($role === 'super_admin');
                     <textarea id="programDescription" name="description" rows="2" placeholder="Penerangan ringkas program..."
                         class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none resize-none"></textarea>
                 </div>
+                <div class="col-span-12 md:col-span-6">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider"><i class="fa-solid fa-star mr-1 text-[#ffc20e]"></i> Tetapan Pilihan</label>
+                    <label class="flex items-center gap-3 p-3 border border-[#ffc20e]/40 bg-yellow-50/60 rounded-xl cursor-pointer hover:bg-yellow-50 transition-all select-none">
+                        <input type="checkbox" id="isFeatured" name="is_featured" value="1"
+                            class="w-4 h-4 accent-[#8a0028] cursor-pointer">
+                        <span class="text-xs font-bold text-[#520018]">Program Pilihan
+                            <span class="text-[10px] text-slate-400 font-normal">(dipaparkan dalam bahagian Pilihan pada halaman Acara)</span>
+                        </span>
+                    </label>
+                </div>
                 <div class="col-span-12">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider"><i class="fa-solid fa-image mr-1 text-[#8a0028]"></i> Poster Program</label>
                     <div class="flex items-start gap-4">
@@ -270,6 +280,7 @@ $isSuperAdmin = ($role === 'super_admin');
                     <thead class="bg-slate-100 text-slate-600 uppercase font-bold border-b">
                         <tr>
                             <th class="p-4">#</th>
+                            <th class="p-4 text-center">Poster</th>
                             <th class="p-4">Jenis</th>
                             <th class="p-4">Kod</th>
                             <th class="p-4">Nama Program</th>
@@ -280,41 +291,33 @@ $isSuperAdmin = ($role === 'super_admin');
                         </tr>
                     </thead>
                     <tbody id="tableProgramSenarai" class="divide-y text-slate-600">
-                        <tr><td colspan="8" class="p-8 text-center text-slate-400 italic">Memuatkan senarai program...</td></tr>
+                        <tr><td colspan="9" class="p-8 text-center text-slate-400 italic">Memuatkan senarai program...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Data Tabs (TRG / Luar / Awam) -->
-    <div id="tab-trg" class="tab-content">
+    <!-- Sekolah Tab -->
+    <div id="tab-sekolah" class="tab-content">
         <div class="glass-card flex justify-between items-center mb-8 p-6 rounded-2xl">
             <div>
-                <h2 class="text-2xl font-black text-[#520018] uppercase tracking-tight">Sekolah Terengganu</h2>
-                <p class="text-xs text-slate-400 mt-1">Rekod pendaftaran sekolah TRG</p>
+                <h2 class="text-2xl font-black text-[#520018] uppercase tracking-tight">Sekolah</h2>
+                <p class="text-xs text-slate-400 mt-1">Rekod pendaftaran sekolah</p>
             </div>
             <button onclick="muatDataLive()" class="eventraz-btn text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
                 <i class="fa-solid fa-rotate"></i> REFRESH
             </button>
         </div>
-        <div class="grid grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 gap-6 mb-8">
             <div class="glass-card p-6 rounded-2xl border-l-4 border-[#8a0028]">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sekolah TRG</p>
-                <h3 id="statTRG" class="text-3xl font-black text-slate-800 mt-1">—</h3>
-            </div>
-            <div class="glass-card p-6 rounded-2xl border-l-4 border-[#ffc20e]">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sekolah Luar</p>
-                <h3 id="statLuar" class="text-3xl font-black text-slate-800 mt-1">—</h3>
-            </div>
-            <div class="glass-card p-6 rounded-2xl border-l-4 border-[#520018]">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Orang Awam</p>
-                <h3 id="statAwam" class="text-3xl font-black text-slate-800 mt-1">—</h3>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jumlah Sekolah</p>
+                <h3 id="statSekolah" class="text-3xl font-black text-slate-800 mt-1">—</h3>
             </div>
         </div>
         <div class="glass-card rounded-2xl overflow-hidden">
             <div class="p-5 border-b font-bold text-sm text-slate-700 bg-slate-50 uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-layer-group text-[#8a0028]"></i> Senarai Sekolah Terengganu
+                <i class="fa-solid fa-school text-[#8a0028]"></i> Senarai Sekolah
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -329,42 +332,8 @@ $isSuperAdmin = ($role === 'super_admin');
                             <th class="p-4 text-center">Bil. Murid</th>
                         </tr>
                     </thead>
-                    <tbody id="tableTRG" class="divide-y text-slate-600">
+                    <tbody id="tableSekolah" class="divide-y text-slate-600">
                         <tr><td colspan="7" class="p-8 text-center text-slate-400 italic">Memuatkan data...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="tab-luar" class="tab-content">
-        <div class="glass-card flex justify-between items-center mb-8 p-6 rounded-2xl">
-            <div>
-                <h2 class="text-2xl font-black text-[#520018] uppercase tracking-tight">Sekolah Luar</h2>
-                <p class="text-xs text-slate-400 mt-1">Rekod pendaftaran sekolah luar</p>
-            </div>
-            <button onclick="muatDataLive()" class="eventraz-btn text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
-                <i class="fa-solid fa-rotate"></i> REFRESH
-            </button>
-        </div>
-        <div class="glass-card rounded-2xl overflow-hidden">
-            <div class="p-5 border-b font-bold text-sm text-slate-700 bg-slate-50 uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-school-flag text-amber-500"></i> Senarai Sekolah Luar
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-100 text-slate-600 uppercase font-bold border-b">
-                        <tr>
-                            <th class="p-4">Tarikh</th>
-                            <th class="p-4">Program</th>
-                            <th class="p-4">Nama Sekolah</th>
-                            <th class="p-4">Kod</th>
-                            <th class="p-4">No. Tel</th>
-                            <th class="p-4">Emel</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableLuar" class="divide-y text-slate-600">
-                        <tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Memuatkan data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -380,6 +349,12 @@ $isSuperAdmin = ($role === 'super_admin');
             <button onclick="muatDataLive()" class="eventraz-btn text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
                 <i class="fa-solid fa-rotate"></i> REFRESH
             </button>
+        </div>
+        <div class="grid grid-cols-1 gap-6 mb-8">
+            <div class="glass-card p-6 rounded-2xl border-l-4 border-[#520018]">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jumlah Orang Awam</p>
+                <h3 id="statAwam" class="text-3xl font-black text-slate-800 mt-1">—</h3>
+            </div>
         </div>
         <div class="glass-card rounded-2xl overflow-hidden">
             <div class="p-5 border-b font-bold text-sm text-slate-700 bg-slate-50 uppercase tracking-wider flex items-center gap-2">
@@ -400,6 +375,75 @@ $isSuperAdmin = ($role === 'super_admin');
                     </thead>
                     <tbody id="tableAwam" class="divide-y text-slate-600">
                         <tr><td colspan="7" class="p-8 text-center text-slate-400 italic">Memuatkan data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per-Program Statistics Tab -->
+    <div id="tab-program-stats" class="tab-content">
+        <div class="glass-card flex justify-between items-center mb-8 p-6 rounded-2xl">
+            <div>
+                <h2 class="text-2xl font-black text-[#520018] uppercase tracking-tight">Statistik Program</h2>
+                <p class="text-xs text-slate-400 mt-1"><?= $isSuperAdmin ? 'Prestasi pendaftaran semua program dalam sistem' : 'Prestasi pendaftaran program yang anda cipta sahaja' ?> — boleh dieksport ke Excel / Google Sheets</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="eksportStatistikProgram()" class="bg-white border-2 border-[#8a0028] text-[#8a0028] text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-sm transition-all active:scale-95 hover:bg-yellow-50">
+                    <i class="fa-solid fa-file-csv"></i> EKSPORT SEMUA (CSV)
+                </button>
+                <button onclick="muatStatistikProgram()" class="eventraz-btn text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95">
+                    <i class="fa-solid fa-rotate"></i> REFRESH
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="programStatsSummary">
+            <div class="glass-card p-5 rounded-2xl border-l-4 border-[#8a0028]">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jumlah Program</p>
+                <h3 id="psTotalPrograms" class="text-2xl font-black text-slate-800 mt-1">—</h3>
+            </div>
+            <div class="glass-card p-5 rounded-2xl border-l-4 border-blue-500">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jumlah Peserta</p>
+                <h3 id="psTotalParticipants" class="text-2xl font-black text-slate-800 mt-1">—</h3>
+            </div>
+            <div class="glass-card p-5 rounded-2xl border-l-4 border-green-500">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Murid (Sekolah)</p>
+                <h3 id="psTotalMurid" class="text-2xl font-black text-slate-800 mt-1">—</h3>
+            </div>
+            <div class="glass-card p-5 rounded-2xl border-l-4 border-[#ffc20e]">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Peserta Awam</p>
+                <h3 id="psTotalAwam" class="text-2xl font-black text-slate-800 mt-1">—</h3>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="p-5 border-b bg-slate-50 flex items-center justify-between">
+                <div class="flex items-center gap-2 font-bold text-sm text-slate-700 uppercase tracking-wider">
+                    <i class="fa-solid fa-chart-pie text-[#8a0028]"></i> Statistik Setiap Program
+                </div>
+                <span id="programStatsCount" class="bg-[#8a0028]/10 text-[#8a0028] text-[10px] font-bold px-3 py-1 rounded-full">Memuatkan...</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 uppercase font-bold border-b">
+                        <tr>
+                            <th class="p-3">Program</th>
+                            <th class="p-3">Tarikh</th>
+                            <th class="p-3 text-center">Status</th>
+                            <th class="p-3 text-center">Kapasiti</th>
+                            <th class="p-3 text-center">Sekolah</th>
+                            <th class="p-3 text-center">Murid</th>
+                            <th class="p-3 text-center">Guru</th>
+                            <th class="p-3 text-center">Awam</th>
+                            <th class="p-3 text-center">Peserta Awam</th>
+                            <th class="p-3 text-center">Jumlah</th>
+                            <th class="p-3 text-center">Kehadiran Awam</th>
+                            <th class="p-3 text-center">Eksport</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableProgramStats" class="divide-y text-slate-600">
+                        <tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Memuatkan statistik...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -526,7 +570,7 @@ $isSuperAdmin = ($role === 'super_admin');
         </div>
 
         <!-- System-wide stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8" id="sysStatsGrid">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8" id="sysStatsGrid">
             <div class="glass-card p-6 rounded-2xl border-l-4 border-[#8a0028]">
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jumlah Admin</p>
                 <h3 id="statTotalAdmins" class="text-3xl font-black text-slate-800 mt-1">—</h3>
@@ -542,6 +586,14 @@ $isSuperAdmin = ($role === 'super_admin');
             <div class="glass-card p-6 rounded-2xl border-l-4 border-[#ffc20e]">
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jumlah Pendaftaran</p>
                 <h3 id="statTotalRegs" class="text-3xl font-black text-slate-800 mt-1">—</h3>
+            </div>
+            <div class="glass-card p-6 rounded-2xl border-l-4 border-[#8a0028]">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pendaftaran Sekolah</p>
+                <h3 id="statSekolahRegs" class="text-3xl font-black text-slate-800 mt-1">—</h3>
+            </div>
+            <div class="glass-card p-6 rounded-2xl border-l-4 border-[#520018]">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pendaftaran Awam</p>
+                <h3 id="statAwamRegs" class="text-3xl font-black text-slate-800 mt-1">—</h3>
             </div>
         </div>
 
@@ -559,7 +611,9 @@ $isSuperAdmin = ($role === 'super_admin');
                             <th class="p-4 text-center">Program</th>
                             <th class="p-4 text-center">Aktif</th>
                             <th class="p-4 text-center">Selesai</th>
-                            <th class="p-4 text-center">Pendaftaran</th>
+                            <th class="p-4 text-center">Sekolah</th>
+                            <th class="p-4 text-center">Awam</th>
+                            <th class="p-4 text-center">Jumlah</th>
                         </tr>
                     </thead>
                     <tbody id="tableAdminStats" class="divide-y text-slate-600">
@@ -573,9 +627,21 @@ $isSuperAdmin = ($role === 'super_admin');
 
 </div><!-- end main -->
 
+<!-- Poster Lightbox -->
+<div id="posterLightbox" onclick="tutupLightbox()" style="display:none"
+    class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 cursor-zoom-out">
+    <div class="relative max-w-2xl w-full" onclick="event.stopPropagation()">
+        <button onclick="tutupLightbox()" class="absolute -top-4 -right-4 bg-white text-slate-700 w-9 h-9 rounded-full flex items-center justify-center shadow-lg text-lg hover:bg-yellow-50 z-10">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <img id="lightboxImg" src="" alt="Poster" class="w-full rounded-2xl shadow-2xl object-contain max-h-[80vh]">
+        <p id="lightboxCaption" class="text-center text-white text-xs mt-3 font-semibold opacity-80"></p>
+    </div>
+</div>
+
 <script>
 var IS_SUPER_ADMIN = <?= $isSuperAdmin ? 'true' : 'false' ?>;
-var masterData = { sekolahTRG: [], sekolahLuar: [], orangAwam: [] };
+var masterData = { sekolah: [], orangAwam: [] };
 var programCache = [];
 var accountCache = { school: [], public: [], admins: [] };
 
@@ -606,9 +672,10 @@ function tukarTab(tabId, btn) {
         b.classList.add('text-yellow-100','hover:bg-white/10');
     });
     if (btn) { btn.classList.add('active-nav'); btn.classList.remove('text-yellow-100','hover:bg-white/10'); }
-    if (['trg','luar','awam'].includes(tabId)) muatDataLive();
+    if (['sekolah','awam'].includes(tabId)) muatDataLive();
     if (tabId === 'akaun') muatAkaun(false);
     if (tabId === 'stats') muatStats();
+    if (tabId === 'program-stats') muatStatistikProgram();
     if (tabId === 'daftar') setTimeout(muatSenaraiProgram, 300);
     localStorage.setItem('adminDashboardTab', tabId);
     var url = new URL(window.location.href);
@@ -620,7 +687,7 @@ window.onload = function () {
     tetapkanTarikhMinimum();
     var params = new URLSearchParams(window.location.search);
     var tab = params.get('tab') || localStorage.getItem('adminDashboardTab') || 'daftar';
-    var valid = ['daftar','trg','luar','awam','akaun','stats'];
+    var valid = ['daftar','sekolah','awam','akaun','stats','program-stats'];
     if (!valid.includes(tab)) tab = 'daftar';
     tukarTab(tab);
     muatSenaraiProgram().catch(err => console.error(err));
@@ -656,16 +723,21 @@ function kemasKiniStatusPreview() {
 // ============================================================
 async function muatSenaraiProgram() {
     const res  = await fetch('<?= base_url('admin/programs') ?>?t=' + Date.now(), { cache: 'no-store' });
-    const list = await res.json();
-    if (!res.ok || !Array.isArray(list)) throw new Error((list && list.message) ? list.message : 'Gagal memuatkan program');
+    const rawText = await res.text();
+    console.log('[DEBUG programs] status=' + res.status + ' body=' + rawText.substring(0, 500));
+    let list;
+    try { list = JSON.parse(rawText); } catch(e) { console.error('[DEBUG] JSON parse error:', e, rawText.substring(0,300)); return; }
+    if (!res.ok || !Array.isArray(list)) { console.error('[DEBUG] Not array or not ok:', list); return; }
     programCache = list;
+    console.log('[DEBUG] programs count:', list.length);
 
     var drop = document.getElementById('filterProgram');
     var selected = drop.value || 'SEMUA';
     drop.innerHTML = '<option value="SEMUA">-- SEMUA PROGRAM --</option>';
-    list.filter(p => String(p.status||'').toUpperCase() === 'AKTIF').forEach(p => {
+    list.forEach(p => {
         var o = document.createElement('option');
-        o.value = p.nama; o.textContent = p.nama; drop.appendChild(o);
+        var statusLabel = String(p.status||'').toUpperCase() === 'AKTIF' ? '' : ' (Tidak Aktif)';
+        o.value = p.nama; o.textContent = p.nama + statusLabel; drop.appendChild(o);
     });
     if ([...drop.options].some(o => o.value === selected)) drop.value = selected;
 
@@ -706,7 +778,7 @@ function binaSenaraProgram(list) {
     var subs  = list.filter(p => p.parent_id && p.parent_id !== 0 && p.parent_id !== null);
     countEl.textContent = list.length + ' program (' + mains.length + ' utama, ' + subs.length + ' sub)';
 
-    if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-400 italic">Tiada program.</td></tr>'; return; }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-slate-400 italic">Tiada program.</td></tr>'; return; }
 
     tbody.innerHTML = '';
     var rowNum = 0;
@@ -751,14 +823,28 @@ function renderProgramRow(tbody, p, num, isSub) {
     var nama = escapeHtml(p.nama || '—');
     var mula = formatTarikh(p.mula || p.start_date);
     var tamat = formatTarikh(p.tamat || p.end_date);
+    var isFeatured = p.is_featured == 1 || p.is_featured === true;
     var jenisHtml = isSub
         ? '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">SUB</span>'
-        : '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-bold">UTAMA</span>';
+        : '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-bold">UTAMA</span>'
+        + (isFeatured ? ' <span class="bg-yellow-400 text-[#520018] px-2 py-0.5 rounded text-[10px] font-black ml-1"><i class=\"fa-solid fa-star text-[9px]\"></i> PILIHAN</span>' : '');
+
+    var posterHtml;
+    if (p.poster_image) {
+        var posterUrl = baseUrl(p.poster_image);
+        posterHtml = `<button type="button" onclick="bukaLightbox('${escapeJs(posterUrl)}','${escapeJs(p.nama||p.id)}')"
+            class="block mx-auto w-12 h-12 rounded-lg overflow-hidden border border-slate-200 hover:border-[#8a0028] hover:shadow-md transition-all" title="Lihat Poster">
+            <img src="${posterUrl}" alt="Poster" class="w-full h-full object-cover">
+        </button>`;
+    } else {
+        posterHtml = '<div class="w-12 h-12 mx-auto rounded-lg bg-slate-100 flex items-center justify-center text-slate-300"><i class="fa-solid fa-image text-lg"></i></div>';
+    }
 
     var tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50 transition-all' + (isSub ? ' bg-blue-50/30' : '');
     tr.innerHTML = `
         <td class="p-4 text-slate-400 font-mono">${num}</td>
+        <td class="p-4 text-center">${posterHtml}</td>
         <td class="p-4">${jenisHtml}</td>
         <td class="p-4 font-black text-[#8a0028] whitespace-nowrap">${isSub ? '<span class="text-slate-300 mr-1">└</span>' : ''}${kod}</td>
         <td class="p-4 font-semibold text-slate-800">${nama}</td>
@@ -824,6 +910,7 @@ async function daftarProgram(event) {
         body.append('location',           document.getElementById('programLocation').value.trim());
         body.append('description',        document.getElementById('programDescription').value.trim());
         body.append('registration_limit', document.getElementById('regLimit').value || 0);
+        body.append('is_featured', document.getElementById('isFeatured').checked ? 1 : 0);
         var posterFile = document.getElementById('programPoster').files[0];
         if (posterFile) body.append('poster_image', posterFile);
 
@@ -872,6 +959,7 @@ function mulaEditProgram(programCode) {
     document.getElementById('programLocation').value     = program.location || '';
     document.getElementById('programDescription').value  = program.description || '';
     document.getElementById('regLimit').value            = program.registration_limit || 0;
+    document.getElementById('isFeatured').checked          = (program.is_featured == 1 || program.is_featured === true);
     if (program.poster_image) {
         document.getElementById('posterPreviewImg').src = baseUrl(program.poster_image);
         document.getElementById('posterPreviewBox').classList.remove('hidden');
@@ -898,6 +986,7 @@ function resetProgramForm() {
     document.getElementById('parentProgramSelect').value = '';
     document.getElementById('posterPreviewBox').classList.add('hidden');
     document.getElementById('posterFileName').classList.add('hidden');
+    document.getElementById('isFeatured').checked = false;
     setProgramType('utama');
     kemasKiniStatusPreview();
 }
@@ -938,31 +1027,27 @@ async function muatDataLive() {
         const result = await res.json();
         if (!result.success) throw new Error(result.message || 'Gagal memuatkan data');
         masterData = {
-            sekolahTRG:  Array.isArray(result.sekolahTRG)  ? result.sekolahTRG  : [],
-            sekolahLuar: Array.isArray(result.sekolahLuar) ? result.sekolahLuar : [],
-            orangAwam:   Array.isArray(result.orangAwam)   ? result.orangAwam   : [],
+            sekolah:   Array.isArray(result.sekolah)   ? result.sekolah   : [],
+            orangAwam: Array.isArray(result.orangAwam) ? result.orangAwam : [],
         };
         tapisSemuaData();
     } catch (err) { console.error('muatDataLive:', err); }
 }
 
 function tapisSemuaData() {
-    var filter = (document.getElementById('filterProgram').value || 'SEMUA').trim();
-    var trg    = masterData.sekolahTRG.filter(r  => filter === 'SEMUA' || r.program === filter);
-    var luar   = masterData.sekolahLuar.filter(r => filter === 'SEMUA' || r.program === filter);
-    var awam   = masterData.orangAwam.filter(r   => filter === 'SEMUA' || r.program === filter);
+    var filter  = (document.getElementById('filterProgram').value || 'SEMUA').trim();
+    var sekolah = masterData.sekolah.filter(r  => filter === 'SEMUA' || r.program === filter);
+    var awam    = masterData.orangAwam.filter(r => filter === 'SEMUA' || r.program === filter);
 
-    document.getElementById('statTRG').textContent  = trg.length;
-    document.getElementById('statLuar').textContent = luar.length;
-    document.getElementById('statAwam').textContent = awam.length;
+    document.getElementById('statSekolah').textContent = sekolah.length;
+    document.getElementById('statAwam').textContent    = awam.length;
 
-    renderTRG(trg);
-    renderLuar(luar);
+    renderSekolah(sekolah);
     renderAwam(awam);
 }
 
-function renderTRG(rows) {
-    var tbody = document.getElementById('tableTRG');
+function renderSekolah(rows) {
+    var tbody = document.getElementById('tableSekolah');
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">Tiada rekod.</td></tr>'; return; }
     tbody.innerHTML = rows.map(function(r) {
         var guruList = Array.isArray(r.guru) ? r.guru : [];
@@ -976,22 +1061,90 @@ function renderTRG(rows) {
             <td class="p-4 font-mono text-[#8a0028]">${escapeHtml(r.kodSekolah)}</td>
             <td class="p-4">${guruHtml}</td>
             <td class="p-4 text-slate-500"><div>${escapeHtml(r.email||'—')}</div><div>${escapeHtml(r.tel||'—')}</div></td>
-            <td class="p-4 text-center font-black text-[#8a0028]">${escapeHtml(String(r.bilMurid))}</td>
+            <td class="p-4 text-center font-black text-[#8a0028]">${bilMuridCell(r)}</td>
         </tr>`;
     }).join('');
 }
 
-function renderLuar(rows) {
-    var tbody = document.getElementById('tableLuar');
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Tiada rekod.</td></tr>'; return; }
-    tbody.innerHTML = rows.map(r => `<tr class="hover:bg-slate-50">
-        <td class="p-4 text-slate-500 whitespace-nowrap">${escapeHtml(r.timestamp)}</td>
-        <td class="p-4 font-semibold">${escapeHtml(r.program)}</td>
-        <td class="p-4">${escapeHtml(r.namaSekolah)}</td>
-        <td class="p-4 font-mono text-[#8a0028]">${escapeHtml(r.kodSekolah)}</td>
-        <td class="p-4">${escapeHtml(r.tel||'—')}</td>
-        <td class="p-4">${escapeHtml(r.email||'—')}</td>
-    </tr>`).join('');
+function bilMuridCell(r) {
+    var n = parseInt(r.bilMurid, 10) || 0;
+    if (n <= 0) return '0';
+    return '<button type="button" onclick="tunjukMurid(' + Number(r.id) + ',\'' + escapeJs(r.namaSekolah || '') + '\')" ' +
+        'class="count-link font-black text-[#8a0028] bg-transparent border-0 p-0 hover:text-[#520018]" title="Lihat senarai murid">' + n + '</button>';
+}
+
+function bilAhliCell(r) {
+    var n = parseInt(r.bilAhli, 10) || 0;
+    if (n <= 0) return '0';
+    return '<button type="button" onclick="tunjukAhliKeluarga(' + Number(r.id) + ',\'' + escapeJs(r.nama || '') + '\')" ' +
+        'class="count-link font-bold text-[#8a0028] bg-transparent border-0 p-0 hover:text-[#520018]" title="Lihat senarai ahli keluarga">' + n + '</button>';
+}
+
+function binaJadualPeserta(title, subtitle, rows, emptyMsg) {
+    if (!rows.length) {
+        return '<p class="text-sm text-slate-500 text-center py-4">' + escapeHtml(emptyMsg) + '</p>';
+    }
+    return '<div class="text-left">' +
+        (subtitle ? '<p class="text-xs text-slate-500 mb-3">' + escapeHtml(subtitle) + '</p>' : '') +
+        '<table class="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">' +
+        '<thead class="bg-slate-100 text-slate-600 uppercase font-bold">' +
+        '<tr><th class="p-2 text-left">Nama</th><th class="p-2 text-left">IC / MyKid</th></tr></thead>' +
+        '<tbody class="divide-y">' +
+        rows.map(function(row, i) {
+            return '<tr class="hover:bg-slate-50"><td class="p-2 font-semibold">' + escapeHtml(row.nama) +
+                '</td><td class="p-2 font-mono text-slate-600">' + escapeHtml(row.ic) + '</td></tr>';
+        }).join('') +
+        '</tbody></table></div>';
+}
+
+async function tunjukMurid(registrationId, schoolName) {
+    Swal.fire({ title: 'Memuatkan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const res    = await fetch('<?= base_url('admin/data/students') ?>/' + registrationId + '?t=' + Date.now(), { cache: 'no-store' });
+        const result = await res.json();
+        Swal.close();
+        if (!result.success) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: result.message || 'Gagal memuatkan senarai murid.' });
+            return;
+        }
+        var subtitle = (result.program || '') + (schoolName ? ' — ' + schoolName : '');
+        Swal.fire({
+            icon: 'info',
+            title: 'Senarai Murid',
+            html: binaJadualPeserta('Senarai Murid', subtitle, result.students || [], 'Tiada murid didaftarkan.'),
+            width: '520px',
+            confirmButtonText: 'Tutup',
+            confirmButtonColor: '#8a0028',
+        });
+    } catch (err) {
+        Swal.close();
+        Swal.fire({ icon: 'error', title: 'Ralat', text: err.message });
+    }
+}
+
+async function tunjukAhliKeluarga(registrationId, registrantName) {
+    Swal.fire({ title: 'Memuatkan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const res    = await fetch('<?= base_url('admin/data/family') ?>/' + registrationId + '?t=' + Date.now(), { cache: 'no-store' });
+        const result = await res.json();
+        Swal.close();
+        if (!result.success) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: result.message || 'Gagal memuatkan senarai ahli keluarga.' });
+            return;
+        }
+        var subtitle = (result.program || '') + (registrantName ? ' — ' + registrantName : '');
+        Swal.fire({
+            icon: 'info',
+            title: 'Senarai Ahli Keluarga',
+            html: binaJadualPeserta('Senarai Ahli Keluarga', subtitle, result.members || [], 'Tiada ahli keluarga didaftarkan.'),
+            width: '520px',
+            confirmButtonText: 'Tutup',
+            confirmButtonColor: '#8a0028',
+        });
+    } catch (err) {
+        Swal.close();
+        Swal.fire({ icon: 'error', title: 'Ralat', text: err.message });
+    }
 }
 
 function renderAwam(rows) {
@@ -1004,7 +1157,7 @@ function renderAwam(rows) {
         <td class="p-4 font-mono">${escapeHtml(r.ic)}</td>
         <td class="p-4">${escapeHtml(r.tel)}</td>
         <td class="p-4">${escapeHtml(r.email)}</td>
-        <td class="p-4 text-center font-bold">${escapeHtml(String(r.bilAhli))}</td>
+        <td class="p-4 text-center font-bold">${bilAhliCell(r)}</td>
     </tr>`).join('');
 }
 
@@ -1174,6 +1327,21 @@ async function padamAkaun(type, id) {
 }
 
 // ============================================================
+// POSTER LIGHTBOX
+// ============================================================
+function bukaLightbox(url, caption) {
+    document.getElementById('lightboxImg').src       = url;
+    document.getElementById('lightboxCaption').textContent = caption || '';
+    document.getElementById('posterLightbox').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+function tutupLightbox() {
+    document.getElementById('posterLightbox').style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') tutupLightbox(); });
+
+// ============================================================
 // SUPER ADMIN STATS
 // ============================================================
 async function muatStats() {
@@ -1187,21 +1355,120 @@ async function muatStats() {
         if (el('statTotalPrograms')) el('statTotalPrograms').textContent  = s.total_programs || 0;
         if (el('statActivePrograms'))el('statActivePrograms').textContent = s.active_programs || 0;
         if (el('statTotalRegs'))     el('statTotalRegs').textContent      = s.total_registrations || 0;
+        if (el('statSekolahRegs'))   el('statSekolahRegs').textContent    = s.sekolah_registrations || 0;
+        if (el('statAwamRegs'))      el('statAwamRegs').textContent       = s.awam_registrations || 0;
 
         var tbody = el('tableAdminStats');
         if (tbody && Array.isArray(s.admins)) {
-            if (!s.admins.length) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Tiada admin didaftarkan.</td></tr>'; return; }
+            if (!s.admins.length) { tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-400 italic">Tiada admin didaftarkan.</td></tr>'; return; }
             tbody.innerHTML = s.admins.map(a => `<tr class="hover:bg-slate-50">
                 <td class="p-4 font-semibold">${escapeHtml(a.name)}</td>
                 <td class="p-4 text-slate-500 font-mono">${escapeHtml(a.username)}</td>
                 <td class="p-4 text-center font-bold text-[#8a0028]">${a.total_programs}</td>
                 <td class="p-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">${a.active_programs}</span></td>
                 <td class="p-4 text-center"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold">${a.completed_programs}</span></td>
+                <td class="p-4 text-center"><span class="bg-[#8a0028]/10 text-[#8a0028] px-2 py-0.5 rounded text-[10px] font-bold">${a.sekolah_registrations || 0}</span></td>
+                <td class="p-4 text-center"><span class="bg-[#520018]/10 text-[#520018] px-2 py-0.5 rounded text-[10px] font-bold">${a.awam_registrations || 0}</span></td>
                 <td class="p-4 text-center font-black text-lg text-[#8a0028]">${a.total_registrations}</td>
             </tr>`).join('');
         }
     } catch (err) { console.error('muatStats:', err); }
 }
+
+// ============================================================
+// PER-PROGRAM EVENT STATISTICS
+// ============================================================
+var programStatsCache = [];
+
+async function muatStatistikProgram() {
+    try {
+        const res    = await fetch('<?= base_url('admin/programs/stats') ?>?t=' + Date.now(), { cache: 'no-store' });
+        const result = await res.json();
+        if (!result.success) return;
+
+        programStatsCache = result.data || [];
+        binaStatistikProgram(programStatsCache);
+    } catch (err) { console.error('muatStatistikProgram:', err); }
+}
+
+function binaStatistikProgram(list) {
+    var tbody   = document.getElementById('tableProgramStats');
+    var countEl = document.getElementById('programStatsCount');
+    if (!tbody) return;
+
+    countEl.textContent = list.length + ' program';
+
+    var totalParticipants = 0, totalMurid = 0, totalAwam = 0;
+    list.forEach(s => {
+        totalParticipants += parseInt(s.total_participants || 0);
+        totalMurid        += parseInt(s.total_murid || 0);
+        totalAwam         += parseInt(s.awam_participants || 0);
+    });
+
+    var el = id => document.getElementById(id);
+    if (el('psTotalPrograms'))     el('psTotalPrograms').textContent     = list.length;
+    if (el('psTotalParticipants')) el('psTotalParticipants').textContent = totalParticipants;
+    if (el('psTotalMurid'))        el('psTotalMurid').textContent        = totalMurid;
+    if (el('psTotalAwam'))         el('psTotalAwam').textContent         = totalAwam;
+
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Tiada program untuk dipaparkan.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = list.map(function(s) {
+        var limit = parseInt(s.registration_limit || 0);
+        var used  = parseInt(s.used_capacity || 0);
+        var capHtml;
+        if (limit <= 0) {
+            capHtml = '<span class="text-slate-400 text-[10px]">' + used + ' / tiada had</span>';
+        } else {
+            var pct = Math.min(100, Math.round((used / limit) * 100));
+            var barColor = pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-400' : 'bg-green-500';
+            capHtml = '<div class="min-w-[90px] mx-auto">' +
+                '<div class="flex justify-between text-[10px] mb-1"><span class="font-bold">' + used + '/' + limit + '</span>' +
+                '<span class="text-slate-500">' + (s.fill_percent != null ? s.fill_percent + '%' : '') + '</span></div>' +
+                '<div class="capacity-bar"><div class="capacity-fill ' + barColor + '" style="width:' + pct + '%"></div></div></div>';
+        }
+
+        var statusBadge;
+        if (s.event_status === 'past') {
+            statusBadge = '<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold">TAMAT</span>';
+        } else if (s.event_status === 'ongoing') {
+            statusBadge = '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">BERLANGSUNG</span>';
+        } else {
+            statusBadge = '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">AKAN DATANG</span>';
+        }
+
+        var hadirHtml = '<span class="text-green-700 font-bold">' + (s.awam_hadir || 0) + '</span>' +
+            ' / <span class="text-slate-400">' + (s.awam_belum_hadir || 0) + ' belum</span>';
+
+        return '<tr class="hover:bg-slate-50">' +
+            '<td class="p-3"><div class="font-black text-[#8a0028] text-[10px] uppercase">' + escapeHtml(s.program_code) + '</div>' +
+            '<div class="font-semibold text-slate-800">' + escapeHtml(s.program_name) + '</div></td>' +
+            '<td class="p-3 text-slate-500 whitespace-nowrap">' + formatTarikh(s.start_date) + ' – ' + formatTarikh(s.end_date) + '</td>' +
+            '<td class="p-3 text-center">' + statusBadge + '</td>' +
+            '<td class="p-3 text-center">' + capHtml + '</td>' +
+            '<td class="p-3 text-center font-bold">' + (s.sekolah_registrations || 0) + '</td>' +
+            '<td class="p-3 text-center font-bold text-blue-700">' + (s.total_murid || 0) + '</td>' +
+            '<td class="p-3 text-center">' + (s.guru_pengiring || 0) + '</td>' +
+            '<td class="p-3 text-center">' + (s.awam_registrations || 0) + '</td>' +
+            '<td class="p-3 text-center font-bold text-[#520018]">' + (s.awam_participants || 0) + '</td>' +
+            '<td class="p-3 text-center font-black text-lg text-[#8a0028]">' + (s.total_participants || 0) + '</td>' +
+            '<td class="p-3 text-center text-[10px]">' + hadirHtml + '</td>' +
+            '<td class="p-3 text-center">' +
+            '<button type="button" onclick="eksportStatistikProgram(' + Number(s.program_id) + ')" ' +
+            'class="bg-green-100 text-green-700 w-9 h-9 rounded-xl inline-flex items-center justify-center hover:bg-green-200 transition-all" title="Eksport CSV">' +
+            '<i class="fa-solid fa-file-csv"></i></button></td></tr>';
+    }).join('');
+}
+
+function eksportStatistikProgram(programId) {
+    var url = '<?= base_url('admin/programs/stats/export') ?>?t=' + Date.now();
+    if (programId) url += '&program_id=' + programId;
+    window.location.href = url;
+}
 </script>
+<?= view('partials/footer_watermark') ?>
 </body>
 </html>

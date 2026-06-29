@@ -23,56 +23,54 @@ class ProgramModel extends Model
     public function calculateStatus(?string $startDate, ?string $endDate): string
     {
         $today = date('Y-m-d');
-
         if ($endDate && $endDate < $today) {
             return 'TIDAK AKTIF';
         }
-
         return 'AKTIF';
     }
 
     public function refreshProgramStatuses(): void
     {
-        $programs = $this->findAll();
+        try {
+            $db       = \Config\Database::connect();
+            $programs = $db->query("SELECT id, start_date, end_date, status FROM `programs`")->getResultArray();
 
-        foreach ($programs as $program) {
-            $status = $this->calculateStatus(
-                $program['start_date'] ?? null,
-                $program['end_date']   ?? null
-            );
-
-            if (($program['status'] ?? '') !== $status) {
-                $this->update($program[$this->primaryKey], ['status' => $status]);
+            foreach ($programs as $program) {
+                $newStatus = $this->calculateStatus(
+                    $program['start_date'] ?? null,
+                    $program['end_date']   ?? null
+                );
+                if (($program['status'] ?? '') !== $newStatus) {
+                    $db->query(
+                        "UPDATE `programs` SET status = ? WHERE id = ?",
+                        [$newStatus, (int) $program['id']]
+                    );
+                }
             }
+        } catch (\Throwable $e) {
+            log_message('error', '[ProgramModel::refreshProgramStatuses] ' . $e->getMessage());
         }
     }
 
     // ------------------------------------------------------------------
-    // Scoped queries — admin_id = NULL means Super Admin owns it
+    // Scoped queries
     // ------------------------------------------------------------------
 
-    /**
-     * Get all programs visible to the given admin.
-     * Super Admin (adminId = null) sees everything.
-     * Regular Admin sees only their own programs.
-     */
     public function getProgramsForAdmin(?int $adminId): array
     {
         $this->refreshProgramStatuses();
 
-        if ($adminId === null) {
-            // Super Admin — all programs
-            return $this->orderBy('parent_id', 'ASC')
-                        ->orderBy('start_date', 'ASC')
-                        ->orderBy('program_name', 'ASC')
-                        ->findAll();
+        $db  = \Config\Database::connect();
+        $sql = "SELECT * FROM `programs`";
+        if ($adminId !== null) {
+            $sql .= " WHERE admin_id = ?";
         }
+        $sql .= " ORDER BY parent_id ASC, start_date ASC, program_name ASC";
 
-        return $this->where('admin_id', $adminId)
-                    ->orderBy('parent_id', 'ASC')
-                    ->orderBy('start_date', 'ASC')
-                    ->orderBy('program_name', 'ASC')
-                    ->findAll();
+        if ($adminId !== null) {
+            return $db->query($sql, [$adminId])->getResultArray();
+        }
+        return $db->query($sql)->getResultArray();
     }
 
     public function getActivePrograms(): array
@@ -103,122 +101,229 @@ class ProgramModel extends Model
     // Capacity helpers
     // ------------------------------------------------------------------
 
-    /**
-     * Calculate how many capacity slots are already consumed for a program.
-     * - School: each registration consumes bil_murid slots
-     * - Awam:   each registration consumes 1 (registrant) + bil_ahli slots
-     * - Luar:   each registration consumes 1 slot
-     */
     public function getUsedCapacity(int $programId): int
     {
         $db = \Config\Database::connect();
 
-        // School — sum of bil_murid
         $school = (int) $db->table('daftar_sekolah')
                            ->selectSum('bil_murid')
                            ->where('program_id', $programId)
-                           ->get()
-                           ->getRow()
-                           ->bil_murid;
+                           ->get()->getRow()->bil_murid;
 
-        // Awam — count registrants + sum of bil_ahli
-        $awamRow  = $db->table('daftar_awam')
-                       ->select('COUNT(*) as cnt, COALESCE(SUM(bil_ahli),0) as ahli_sum')
-                       ->where('program_id', $programId)
-                       ->get()
-                       ->getRowArray();
+        $awamRow = $db->table('daftar_awam')
+                      ->select('COUNT(*) as cnt, COALESCE(SUM(bil_ahli),0) as ahli_sum')
+                      ->where('program_id', $programId)
+                      ->get()->getRowArray();
         $awam = (int) ($awamRow['cnt'] ?? 0) + (int) ($awamRow['ahli_sum'] ?? 0);
 
-        // Luar — each registration = 1 slot
-        $luar = (int) $db->table('daftar_luar')
-                         ->where('program_id', $programId)
-                         ->countAllResults();
-
-        return $school + $awam + $luar;
+        // daftar_luar table not yet created — skip
+        return $school + $awam;
     }
 
     public function getRemainingCapacity(int $programId): int
     {
         $program = $this->find($programId);
         if (!$program) return 0;
-
         $limit = (int) ($program['registration_limit'] ?? 0);
-        if ($limit <= 0) return PHP_INT_MAX; // 0 means unlimited
-
-        $used = $this->getUsedCapacity($programId);
-        return max(0, $limit - $used);
+        if ($limit <= 0) return PHP_INT_MAX;
+        return max(0, $limit - $this->getUsedCapacity($programId));
     }
 
     public function hasCapacity(int $programId, int $slotsNeeded): bool
     {
-        $remaining = $this->getRemainingCapacity($programId);
-        return $remaining >= $slotsNeeded;
+        return $this->getRemainingCapacity($programId) >= $slotsNeeded;
     }
 
     // ------------------------------------------------------------------
-    // Dashboard stats for Super Admin
+    // Public / school events visibility (hide ended events after 7 days)
+    // ------------------------------------------------------------------
+
+    public function getPublicVisibilityCutoff(): string
+    {
+        return date('Y-m-d', strtotime('-7 days'));
+    }
+
+    /**
+     * Events ended more than 7 days ago are hidden from public & school event pages.
+     */
+    public function isVisibleOnPublicViews(array $program): bool
+    {
+        $endDate = $program['end_date'] ?? null;
+        if (!$endDate) {
+            return false;
+        }
+        return $endDate >= $this->getPublicVisibilityCutoff();
+    }
+
+    // ------------------------------------------------------------------
+    // Per-program event statistics
+    // ------------------------------------------------------------------
+
+    public function getProgramEventStats(int $programId): ?array
+    {
+        $program = $this->find($programId);
+        if (!$program) {
+            return null;
+        }
+
+        $db = \Config\Database::connect();
+
+        $sekolahRegs = $db->table('daftar_sekolah')
+            ->where('program_id', $programId)
+            ->get()->getResultArray();
+
+        $awamRegs = $db->table('daftar_awam')
+            ->where('program_id', $programId)
+            ->get()->getResultArray();
+
+        $sekolahCount = count($sekolahRegs);
+        $totalMurid   = (int) array_sum(array_map(fn ($r) => (int) $r['bil_murid'], $sekolahRegs));
+
+        $regIds = array_map(fn ($r) => (int) $r['id'], $sekolahRegs);
+        $guruCount        = 0;
+        $muridListedCount = 0;
+        if (!empty($regIds)) {
+            $guruCount = (int) $db->table('daftar_guru')
+                ->whereIn('registration_id', $regIds)
+                ->countAllResults();
+            $muridListedCount = (int) $db->table('daftar_murid')
+                ->whereIn('registration_id', $regIds)
+                ->countAllResults();
+        }
+
+        $awamRegCount      = count($awamRegs);
+        $awamFamilyMembers = (int) array_sum(array_map(fn ($r) => (int) $r['bil_ahli'], $awamRegs));
+        $awamParticipants  = $awamRegCount + $awamFamilyMembers;
+
+        $hadirCount      = 0;
+        $belumHadirCount = 0;
+        foreach ($awamRegs as $r) {
+            $st = $r['status_hadir'] ?? 'Belum Hadir';
+            if (strcasecmp($st, 'Hadir') === 0) {
+                $hadirCount++;
+            } else {
+                $belumHadirCount++;
+            }
+        }
+
+        $schoolStatusCounts = [];
+        foreach ($sekolahRegs as $r) {
+            $st = $r['status'] ?? 'Baru';
+            $schoolStatusCounts[$st] = ($schoolStatusCounts[$st] ?? 0) + 1;
+        }
+
+        $limit     = (int) ($program['registration_limit'] ?? 0);
+        $used      = $this->getUsedCapacity($programId);
+        $remaining = $limit > 0 ? max(0, $limit - $used) : null;
+        $fillPct   = $limit > 0 ? round(($used / $limit) * 100, 1) : null;
+
+        $today       = date('Y-m-d');
+        $eventStatus = 'upcoming';
+        if (($program['end_date'] ?? '') < $today) {
+            $eventStatus = 'past';
+        } elseif (($program['start_date'] ?? '') <= $today) {
+            $eventStatus = 'ongoing';
+        }
+
+        return [
+            'program_id'            => (int) $program['id'],
+            'program_code'          => $program['program_code'],
+            'program_name'          => $program['program_name'],
+            'start_date'            => $program['start_date'],
+            'end_date'              => $program['end_date'],
+            'location'              => $program['location'] ?? '',
+            'organizer'             => $program['organizer'] ?? '',
+            'status'                => $program['status'] ?? '',
+            'event_status'          => $eventStatus,
+            'registration_limit'    => $limit,
+            'used_capacity'         => $used,
+            'remaining_capacity'    => $remaining,
+            'fill_percent'          => $fillPct,
+            'sekolah_registrations' => $sekolahCount,
+            'total_murid'           => $totalMurid,
+            'guru_pengiring'        => $guruCount,
+            'murid_listed'          => $muridListedCount,
+            'awam_registrations'    => $awamRegCount,
+            'awam_family_members'   => $awamFamilyMembers,
+            'awam_participants'     => $awamParticipants,
+            'total_participants'    => $totalMurid + $awamParticipants,
+            'awam_hadir'            => $hadirCount,
+            'awam_belum_hadir'      => $belumHadirCount,
+            'school_status_breakdown' => $schoolStatusCounts,
+            'parent_id'             => $program['parent_id'],
+        ];
+    }
+
+    public function getAllProgramEventStats(?int $adminId = null): array
+    {
+        $programs = $this->getProgramsForAdmin($adminId);
+        $stats    = [];
+
+        foreach ($programs as $program) {
+            $row = $this->getProgramEventStats((int) $program['id']);
+            if ($row !== null) {
+                $stats[] = $row;
+            }
+        }
+
+        return $stats;
+    }
+
+    // ------------------------------------------------------------------
+    // Dashboard stats
     // ------------------------------------------------------------------
 
     public function getSuperAdminStats(): array
     {
-        $today    = date('Y-m-d');
-        $db       = \Config\Database::connect();
-        $all      = $this->findAll();
+        $today = date('Y-m-d');
+        $db    = \Config\Database::connect();
+        $all   = $this->findAll();
 
-        $active    = 0;
-        $completed = 0;
+        $active = $completed = 0;
         foreach ($all as $p) {
-            if (($p['end_date'] ?? '') < $today) {
-                $completed++;
-            } else {
-                $active++;
-            }
+            if (($p['end_date'] ?? '') < $today) $completed++;
+            else $active++;
         }
 
-        $totalRegs = (int) $db->table('daftar_sekolah')->countAllResults()
-                  + (int) $db->table('daftar_awam')->countAllResults()
-                  + (int) $db->table('daftar_luar')->countAllResults();
+        $sekolahRegs = (int) $db->table('daftar_sekolah')->countAllResults();
+        $awamRegs    = (int) $db->table('daftar_awam')->countAllResults();
 
         return [
-            'total_programs'      => count($all),
-            'active_programs'     => $active,
-            'completed_programs'  => $completed,
-            'total_registrations' => $totalRegs,
+            'total_programs'        => count($all),
+            'active_programs'       => $active,
+            'completed_programs'    => $completed,
+            'total_registrations'   => $sekolahRegs + $awamRegs,
+            'sekolah_registrations' => $sekolahRegs,
+            'awam_registrations'    => $awamRegs,
         ];
     }
 
-    /**
-     * Dashboard stats for a single Admin.
-     */
     public function getAdminStats(int $adminId): array
     {
         $today    = date('Y-m-d');
         $db       = \Config\Database::connect();
         $programs = $this->where('admin_id', $adminId)->findAll();
 
-        $active    = 0;
-        $completed = 0;
+        $active = $completed = 0;
         foreach ($programs as $p) {
-            if (($p['end_date'] ?? '') < $today) {
-                $completed++;
-            } else {
-                $active++;
-            }
+            if (($p['end_date'] ?? '') < $today) $completed++;
+            else $active++;
         }
 
-        $programIds = array_column($programs, 'id');
-        $totalRegs  = 0;
+        $programIds  = array_column($programs, 'id');
+        $sekolahRegs = $awamRegs = 0;
         if (!empty($programIds)) {
-            $totalRegs += (int) $db->table('daftar_sekolah')->whereIn('program_id', $programIds)->countAllResults();
-            $totalRegs += (int) $db->table('daftar_awam')->whereIn('program_id', $programIds)->countAllResults();
-            $totalRegs += (int) $db->table('daftar_luar')->whereIn('program_id', $programIds)->countAllResults();
+            $sekolahRegs = (int) $db->table('daftar_sekolah')->whereIn('program_id', $programIds)->countAllResults();
+            $awamRegs    = (int) $db->table('daftar_awam')->whereIn('program_id', $programIds)->countAllResults();
         }
 
         return [
-            'total_programs'      => count($programs),
-            'active_programs'     => $active,
-            'completed_programs'  => $completed,
-            'total_registrations' => $totalRegs,
+            'total_programs'        => count($programs),
+            'active_programs'       => $active,
+            'completed_programs'    => $completed,
+            'total_registrations'   => $sekolahRegs + $awamRegs,
+            'sekolah_registrations' => $sekolahRegs,
+            'awam_registrations'    => $awamRegs,
         ];
     }
 }

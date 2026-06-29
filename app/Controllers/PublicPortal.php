@@ -5,10 +5,34 @@ namespace App\Controllers;
 use App\Models\DaftarAwamModel;
 use App\Models\DaftarFamilyModel;
 use App\Models\ProgramModel;
+use App\Validation\ValidationRules;
 
 class PublicPortal extends BaseController
 {
+    // ------------------------------------------------------------------
+    // Auth guard helper — returns a 403 JSON response or null if OK
+    // ------------------------------------------------------------------
+    private function requirePublicAuth()
+    {
+        if (!$this->session->get('logged_in') || $this->session->get('role') !== 'public') {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Sila log masuk untuk meneruskan.',
+            ]);
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------------
+    // Pages
+    // ------------------------------------------------------------------
+
     public function index()
+    {
+        return redirect()->to(base_url('public/events'));
+    }
+
+    public function portal()
     {
         return view('public_portal');
     }
@@ -24,66 +48,62 @@ class PublicPortal extends BaseController
 
     public function simpanPendaftaran()
     {
-        if (!$this->session->get('logged_in') || $this->session->get('role') !== 'public') {
-            return $this->response->setStatusCode(403)->setJSON([
+        // ── Auth guard ────────────────────────────────────────────────
+        if ($err = $this->requirePublicAuth()) return $err;
+
+        // ── Server-side validation (base fields) ──────────────────────
+        if (!$this->validate(ValidationRules::PUBLIC_REGISTRATION)) {
+            return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'message' => 'Sila log masuk untuk mendaftar.',
+                'message' => implode(' ', $this->validator->getErrors()),
             ]);
         }
 
         $formData     = $this->request->getPost();
         $programModel = new ProgramModel();
+        $bilAhli      = (int) $formData['bilAhli'];
 
-        $required = ['programId', 'namaPenuh', 'noIC', 'telAwam', 'email', 'bilAhli'];
-        foreach ($required as $field) {
-            if (trim((string) ($formData[$field] ?? '')) === '') {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'success' => false,
-                    'message' => 'Sila lengkapkan semua medan wajib.',
-                ]);
-            }
-        }
-
-        if (!filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'message' => 'Format emel tidak sah.',
-            ]);
-        }
-
-        $bilAhli = (int) $formData['bilAhli'];
-        if ($bilAhli < 0 || $bilAhli > 20) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'message' => 'Bilangan ahli keluarga mesti antara 0 hingga 20.',
-            ]);
-        }
-
-        // Validate family member fields
+        // ── Validate family member fields ─────────────────────────────
         for ($i = 0; $i < $bilAhli; $i++) {
-            if (
-                trim((string) ($formData["namaAhli_{$i}"] ?? '')) === '' ||
-                trim((string) ($formData["icAhli_{$i}"]   ?? '')) === ''
-            ) {
+            $namaAhli = trim((string) ($formData["namaAhli_{$i}"] ?? ''));
+            $icAhli   = trim((string) ($formData["icAhli_{$i}"]   ?? ''));
+
+            if ($namaAhli === '' || $icAhli === '') {
                 return $this->response->setStatusCode(422)->setJSON([
                     'success' => false,
                     'message' => 'Sila lengkapkan semua maklumat ahli keluarga.',
                 ]);
             }
+
+            // IC: 12 digits (dashes optional) — basic sanitise
+            $icClean = preg_replace('/\D/', '', $icAhli);
+            if (strlen($icClean) !== 12) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => "No. IC ahli ke-" . ($i + 1) . " tidak sah.",
+                ]);
+            }
+
+            if (strlen($namaAhli) > 100) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => "Nama ahli ke-" . ($i + 1) . " terlalu panjang.",
+                ]);
+            }
         }
 
-        // ---- Validate program ----
+        // ── Validate program exists and is active ─────────────────────
         $programId = (int) $formData['programId'];
         $program   = $programModel->find($programId);
 
-        if (!$program) {
+        if (!$program || $program['status'] !== 'AKTIF') {
             return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'message' => 'Program yang dipilih tidak sah.',
+                'message' => 'Program yang dipilih tidak sah atau tidak aktif.',
             ]);
         }
 
-        // ---- Capacity check — registrant (1) + family members ----
+        // ── Capacity check — registrant (1) + family members ─────────
         $slotsNeeded = 1 + $bilAhli;
         if (!$programModel->hasCapacity($programId, $slotsNeeded)) {
             return $this->response->setStatusCode(422)->setJSON([
@@ -93,15 +113,24 @@ class PublicPortal extends BaseController
             ]);
         }
 
-        // ---- Save registration ----
-        $awamModel = new DaftarAwamModel();
+        // ── Ownership: email must match session ───────────────────────
+        $sessionEmail = $this->session->get('email');
+        if (strtolower(trim($formData['email'])) !== strtolower($sessionEmail)) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Emel tidak sepadan dengan akaun semasa.',
+            ]);
+        }
+
+        // ── Save registration ─────────────────────────────────────────
+        $awamModel      = new DaftarAwamModel();
         $registrationId = $awamModel->insert([
             'program_id'   => $programId,
             'program_name' => $program['program_name'],
             'nama'         => $formData['namaPenuh'],
-            'ic'           => $formData['noIC'],
+            'ic'           => preg_replace('/\D/', '', $formData['noIC']),
             'tel'          => $formData['telAwam'],
-            'email'        => $formData['email'],
+            'email'        => $sessionEmail, // always use session email
             'bil_ahli'     => $bilAhli,
             'status_hadir' => 'Belum Hadir',
         ]);
@@ -113,14 +142,14 @@ class PublicPortal extends BaseController
             ]);
         }
 
-        // ---- Save family members ----
+        // ── Save family members ───────────────────────────────────────
         if ($bilAhli > 0) {
             $familyModel = new DaftarFamilyModel();
             for ($i = 0; $i < $bilAhli; $i++) {
                 $familyModel->insert([
                     'registration_id' => $registrationId,
-                    'nama_ahli'       => $formData["namaAhli_{$i}"],
-                    'ic_ahli'         => $formData["icAhli_{$i}"],
+                    'nama_ahli'       => trim($formData["namaAhli_{$i}"]),
+                    'ic_ahli'         => preg_replace('/\D/', '', $formData["icAhli_{$i}"]),
                 ]);
             }
         }
@@ -129,18 +158,15 @@ class PublicPortal extends BaseController
     }
 
     // ------------------------------------------------------------------
-    // My registrations
+    // My registrations — scoped to the logged-in user's email ONLY
     // ------------------------------------------------------------------
 
     public function myRegistrations()
     {
-        if (!$this->session->get('logged_in') || $this->session->get('role') !== 'public') {
-            return $this->response->setStatusCode(403)->setJSON([
-                'success' => false,
-                'message' => 'Tidak dibenarkan.',
-            ]);
-        }
+        // ── Auth guard ────────────────────────────────────────────────
+        if ($err = $this->requirePublicAuth()) return $err;
 
+        // Always pull the email from the session — never trust the request
         $email        = $this->session->get('email');
         $awamModel    = new DaftarAwamModel();
         $familyModel  = new DaftarFamilyModel();
@@ -207,10 +233,12 @@ class PublicPortal extends BaseController
 
     public function getSubPrograms($parentId = null)
     {
-        if (!$parentId) return $this->response->setJSON([]);
+        if (!$parentId || !is_numeric($parentId)) {
+            return $this->response->setJSON([]);
+        }
 
         $programModel = new ProgramModel();
-        $subs = $programModel->where('parent_id', $parentId)->where('status', 'AKTIF')->findAll();
+        $subs = $programModel->where('parent_id', (int) $parentId)->where('status', 'AKTIF')->findAll();
 
         $list = [];
         foreach ($subs as $prog) {
@@ -244,15 +272,15 @@ class PublicPortal extends BaseController
 
     public function getProgramDetails($programId = null)
     {
-        if (!$programId) {
+        if (!$programId || !is_numeric($programId)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
-                'message' => 'Program ID diperlukan.',
+                'message' => 'Program ID tidak sah.',
             ]);
         }
 
         $programModel = new ProgramModel();
-        $program      = $programModel->find($programId);
+        $program      = $programModel->find((int) $programId);
 
         if (!$program) {
             return $this->response->setStatusCode(404)->setJSON([
@@ -299,14 +327,15 @@ class PublicPortal extends BaseController
             $programModel->refreshProgramStatuses();
 
             $allPrograms = $programModel->orderBy('start_date', 'DESC')->findAll();
-            $today       = date('Y-m-d');
-            $upcoming    = [];
-            $ongoing     = [];
-            $past        = [];
-            $featured    = [];
+            $today    = date('Y-m-d');
+            $upcoming = [];
+            $ongoing  = [];
+            $past     = [];
+            $featured = [];
 
             foreach ($allPrograms as $prog) {
                 if (!$prog['start_date'] || !$prog['end_date']) continue;
+                if (!$programModel->isVisibleOnPublicViews($prog)) continue;
 
                 $limit     = (int) ($prog['registration_limit'] ?? 0);
                 $used      = $programModel->getUsedCapacity((int) $prog['id']);

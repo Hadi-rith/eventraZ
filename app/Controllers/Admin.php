@@ -3,10 +3,10 @@
 namespace App\Controllers;
 
 use App\Models\DaftarSekolahModel;
-use App\Models\DaftarLuarModel;
 use App\Models\DaftarAwamModel;
 use App\Models\DaftarMuridModel;
 use App\Models\DaftarGuruModel;
+use App\Models\DaftarFamilyModel;
 use App\Models\ProgramModel;
 use App\Models\PublicAccountModel;
 use App\Models\SchoolAccountModel;
@@ -42,6 +42,14 @@ class Admin extends BaseController
     private function isSuperAdmin(): bool
     {
         return $this->session->get('role') === 'super_admin';
+    }
+
+    /**
+     * null = all programs (super admin); admin DB id = owned programs only.
+     */
+    private function getProgramScopeAdminId(): ?int
+    {
+        return $this->isSuperAdmin() ? null : $this->getAdminId();
     }
 
     /**
@@ -121,6 +129,157 @@ class Admin extends BaseController
         }
     }
 
+    /**
+     * GET /admin/programs/stats
+     * Per-program event statistics for the admin dashboard.
+     */
+    public function getProgramStats()
+    {
+        try {
+            $programModel = new ProgramModel();
+            $stats        = $programModel->getAllProgramEventStats($this->getProgramScopeAdminId());
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data'    => $stats,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->serverErrorResponse($e, 'getProgramStats');
+        }
+    }
+
+    /**
+     * GET /admin/programs/stats/export?program_id=123 (optional — exports one program)
+     * CSV download compatible with Excel and Google Sheets.
+     */
+    public function exportProgramStats()
+    {
+        try {
+            $programModel = new ProgramModel();
+            $programId    = $this->request->getGet('program_id');
+
+            if ($programId !== null && $programId !== '') {
+                $program = $programModel->find((int) $programId);
+                if (!$program) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'success' => false,
+                        'message' => 'Program tidak ditemui.',
+                    ]);
+                }
+                if (!$this->canAccessProgram($program)) {
+                    return $this->response->setStatusCode(403)->setJSON([
+                        'success' => false,
+                        'message' => 'Akses ditolak.',
+                    ]);
+                }
+                $stats = [$programModel->getProgramEventStats((int) $programId)];
+            } else {
+                $stats = $programModel->getAllProgramEventStats($this->getProgramScopeAdminId());
+            }
+
+            $headers = [
+                'Kod Program',
+                'Nama Program',
+                'Tarikh Mula',
+                'Tarikh Tamat',
+                'Lokasi',
+                'Penganjur',
+                'Status Program',
+                'Status Acara',
+                'Had Pendaftaran',
+                'Kapasiti Digunakan',
+                'Baki Kapasiti',
+                'Peratus Kapasiti (%)',
+                'Pendaftaran Sekolah',
+                'Jumlah Murid',
+                'Guru Pengiring',
+                'Murid (Senarai)',
+                'Pendaftaran Awam',
+                'Ahli Keluarga Awam',
+                'Jumlah Peserta Awam',
+                'Jumlah Peserta Keseluruhan',
+                'Awam Hadir',
+                'Awam Belum Hadir',
+                'Status Sekolah (Ringkasan)',
+            ];
+
+            $rows = [];
+            foreach ($stats as $s) {
+                if (!$s) {
+                    continue;
+                }
+                $statusSummary = '';
+                if (!empty($s['school_status_breakdown'])) {
+                    $parts = [];
+                    foreach ($s['school_status_breakdown'] as $label => $cnt) {
+                        $parts[] = $label . ': ' . $cnt;
+                    }
+                    $statusSummary = implode('; ', $parts);
+                }
+
+                $eventLabel = match ($s['event_status'] ?? '') {
+                    'past'    => 'Tamat',
+                    'ongoing' => 'Berlangsung',
+                    'upcoming'=> 'Akan Datang',
+                    default   => $s['event_status'] ?? '',
+                };
+
+                $rows[] = [
+                    $s['program_code'],
+                    $s['program_name'],
+                    $s['start_date'],
+                    $s['end_date'],
+                    $s['location'],
+                    $s['organizer'],
+                    $s['status'],
+                    $eventLabel,
+                    $s['registration_limit'] > 0 ? $s['registration_limit'] : 'Tiada had',
+                    $s['used_capacity'],
+                    $s['remaining_capacity'] !== null ? $s['remaining_capacity'] : 'Tiada had',
+                    $s['fill_percent'] !== null ? $s['fill_percent'] : '',
+                    $s['sekolah_registrations'],
+                    $s['total_murid'],
+                    $s['guru_pengiring'],
+                    $s['murid_listed'],
+                    $s['awam_registrations'],
+                    $s['awam_family_members'],
+                    $s['awam_participants'],
+                    $s['total_participants'],
+                    $s['awam_hadir'],
+                    $s['awam_belum_hadir'],
+                    $statusSummary,
+                ];
+            }
+
+            $filename = $programId
+                ? 'statistik_program_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $stats[0]['program_code'] ?? 'program') . '.csv'
+                : 'statistik_semua_program_' . date('Y-m-d') . '.csv';
+
+            $csv = $this->buildCsv($headers, $rows);
+
+            return $this->response
+                ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->setBody($csv);
+        } catch (\Throwable $e) {
+            return $this->serverErrorResponse($e, 'exportProgramStats');
+        }
+    }
+
+    private function buildCsv(array $headers, array $rows): string
+    {
+        $out = fopen('php://temp', 'r+');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, $headers);
+        foreach ($rows as $row) {
+            fputcsv($out, $row);
+        }
+        rewind($out);
+        $csv = stream_get_contents($out);
+        fclose($out);
+        return $csv;
+    }
+
     // ------------------------------------------------------------------
     // Program CRUD
     // ------------------------------------------------------------------
@@ -129,7 +288,7 @@ class Admin extends BaseController
     {
         try {
             $programModel = new ProgramModel();
-            $programs     = $programModel->getProgramsForAdmin($this->getAdminId());
+            $programs     = $programModel->getProgramsForAdmin($this->getProgramScopeAdminId());
 
             $idToCode = [];
             foreach ($programs as $prog) {
@@ -597,13 +756,11 @@ class Admin extends BaseController
     {
         try {
             $sekolahModel = new DaftarSekolahModel();
-            $luarModel    = new DaftarLuarModel();
             $awamModel    = new DaftarAwamModel();
             $guruModel    = new DaftarGuruModel();
 
             if ($this->isSuperAdmin()) {
                 $sekolahRows = $sekolahModel->orderBy('created_at', 'DESC')->findAll();
-                $luarRows    = $luarModel->orderBy('created_at', 'DESC')->findAll();
                 $awamRows    = $awamModel->orderBy('created_at', 'DESC')->findAll();
             } else {
                 // Scope to programs owned by this admin
@@ -613,15 +770,13 @@ class Admin extends BaseController
 
                 if (empty($programIds)) {
                     return $this->response->setJSON([
-                        'success'     => true,
-                        'sekolahTRG'  => [],
-                        'sekolahLuar' => [],
-                        'orangAwam'   => [],
+                        'success'   => true,
+                        'sekolah'   => [],
+                        'orangAwam' => [],
                     ]);
                 }
 
                 $sekolahRows = $sekolahModel->whereIn('program_id', $programIds)->orderBy('created_at', 'DESC')->findAll();
-                $luarRows    = $luarModel->whereIn('program_id', $programIds)->orderBy('created_at', 'DESC')->findAll();
                 $awamRows    = $awamModel->whereIn('program_id', $programIds)->orderBy('created_at', 'DESC')->findAll();
             }
 
@@ -631,10 +786,9 @@ class Admin extends BaseController
             }
 
             return $this->response->setJSON([
-                'success'     => true,
-                'sekolahTRG'  => $this->formatSekolahData($sekolahRows),
-                'sekolahLuar' => $this->formatLuarData($luarRows),
-                'orangAwam'   => $this->formatAwamData($awamRows),
+                'success'   => true,
+                'sekolah'   => $this->formatSekolahData($sekolahRows),
+                'orangAwam' => $this->formatAwamData($awamRows),
             ]);
         } catch (\Throwable $e) {
             return $this->serverErrorResponse($e, 'getAdminData');
@@ -679,6 +833,45 @@ class Admin extends BaseController
             ]);
         } catch (\Throwable $e) {
             return $this->serverErrorResponse($e, 'getRegistrationStudents');
+        }
+    }
+
+    public function getRegistrationFamilyMembers(int $registrationId)
+    {
+        try {
+            $awamModel    = new DaftarAwamModel();
+            $registration = $awamModel->find($registrationId);
+
+            if (!$registration) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Rekod pendaftaran awam tidak ditemui.',
+                ]);
+            }
+
+            $programModel = new ProgramModel();
+            $program      = $programModel->find($registration['program_id']);
+            if ($program && !$this->canAccessProgram($program)) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Akses ditolak.',
+                ]);
+            }
+
+            $familyModel = new DaftarFamilyModel();
+            $members     = $familyModel->where('registration_id', $registrationId)->orderBy('id', 'ASC')->findAll();
+
+            return $this->response->setJSON([
+                'success'  => true,
+                'registrant' => $registration['nama'],
+                'program'  => $registration['program_name'],
+                'members'  => array_map(
+                    fn ($m) => ['nama' => $m['nama_ahli'], 'ic' => $m['ic_ahli']],
+                    $members
+                ),
+            ]);
+        } catch (\Throwable $e) {
+            return $this->serverErrorResponse($e, 'getRegistrationFamilyMembers');
         }
     }
 
@@ -805,7 +998,7 @@ class Admin extends BaseController
     {
         try {
             $programModel = new ProgramModel();
-            $programs     = $programModel->getProgramsForAdmin($this->getAdminId());
+            $programs     = $programModel->getProgramsForAdmin($this->getProgramScopeAdminId());
 
             return $this->response->setJSON([
                 'success'  => true,
@@ -1247,7 +1440,6 @@ class Admin extends BaseController
         if (!empty($programIds)) {
             if ((new DaftarSekolahModel())->whereIn('program_id', $programIds)->countAllResults() > 0) return true;
             if ((new DaftarAwamModel())->whereIn('program_id', $programIds)->countAllResults()    > 0) return true;
-            if ((new DaftarLuarModel())->whereIn('program_id', $programIds)->countAllResults()    > 0) return true;
         }
 
         return false;
@@ -1258,7 +1450,6 @@ class Admin extends BaseController
         if ($oldName === '' || $newName === '' || $oldName === $newName) return;
 
         (new DaftarSekolahModel())->where('program_name', $oldName)->set(['program_name' => $newName])->update();
-        (new DaftarLuarModel())->where('program_name', $oldName)->set(['program_name'    => $newName])->update();
         (new DaftarAwamModel())->where('program_name', $oldName)->set(['program_name'    => $newName])->update();
     }
 

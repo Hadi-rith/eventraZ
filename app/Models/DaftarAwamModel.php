@@ -11,7 +11,7 @@ class DaftarAwamModel extends Model
     protected $allowedFields = [
         'program_id', 'program_name',
         'nama', 'ic', 'tel', 'email',
-        'bil_ahli', 'status_hadir',
+        'bil_ahli', 'status_hadir', 'created_at',
     ];
     protected $useTimestamps = false;
 }

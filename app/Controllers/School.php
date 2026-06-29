@@ -6,6 +6,7 @@ use App\Models\DaftarSekolahModel;
 use App\Models\DaftarMuridModel;
 use App\Models\DaftarGuruModel;
 use App\Models\ProgramModel;
+// DaftarLuarModel removed — sekolah luar is now registered via sekolah portal
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,11 @@ class School extends BaseController
             redirect()->to('/')->send();
             exit();
         }
+    }
+
+    public function index()
+    {
+        return redirect()->to(base_url('school/events'));
     }
 
     public function portal()
@@ -84,21 +90,38 @@ class School extends BaseController
             ]);
         }
 
-        // ---- Student count validation (N guru = max N×10 students) ----
-        $bilMurid  = (int) $formData['bilMurid'];
-        $maxMurid  = count($guruList) * 10;
+        // ---- Collect and validate individual murid entries ----
+        $muridList = [];
+        $muridIdx  = 0;
+        while (isset($formData["namaMurid_{$muridIdx}"])) {
+            $namaMurid = trim((string) ($formData["namaMurid_{$muridIdx}"] ?? ''));
+            $icMurid   = trim((string) ($formData["icMurid_{$muridIdx}"]   ?? ''));
+
+            if ($namaMurid === '' || $icMurid === '') {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => "Sila lengkapkan maklumat Murid ke-" . ($muridIdx + 1) . ".",
+                ]);
+            }
+
+            $muridList[] = ['nama_murid' => $namaMurid, 'ic_murid' => $icMurid];
+            $muridIdx++;
+        }
+
+        $bilMurid = count($muridList);
+        $maxMurid = count($guruList) * 10;
 
         if ($bilMurid < 1) {
             return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'message' => 'Bilangan murid mesti sekurang-kurangnya 1.',
+                'message' => 'Sekurang-kurangnya satu murid diperlukan.',
             ]);
         }
 
         if ($bilMurid > $maxMurid) {
             return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'message' => "Bilangan murid melebihi had. {count($guruList)} Guru Pengiring membenarkan maksimum {$maxMurid} murid.",
+                'message' => count($guruList) . " Guru Pengiring membenarkan maksimum {$maxMurid} murid.",
             ]);
         }
 
@@ -149,6 +172,12 @@ class School extends BaseController
             $guruModel->insert(array_merge($guru, ['registration_id' => $registrationId]));
         }
 
+        // ---- Save Murid ----
+        $muridModel = new DaftarMuridModel();
+        foreach ($muridList as $murid) {
+            $muridModel->insert(array_merge($murid, ['registration_id' => $registrationId]));
+        }
+
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Pendaftaran berjaya disimpan.',
@@ -166,13 +195,16 @@ class School extends BaseController
         $guruModel    = new DaftarGuruModel();
         $programModel = new ProgramModel();
 
+        $muridModel   = new DaftarMuridModel();
         $registrations = $sekolahModel->where('kod_sekolah', $schoolCode)
                                       ->orderBy('created_at', 'DESC')
                                       ->findAll();
 
         foreach ($registrations as &$reg) {
             // Attach guru list
-            $reg['guru'] = $guruModel->where('registration_id', $reg['id'])->findAll();
+            $reg['guru']  = $guruModel->where('registration_id', $reg['id'])->findAll();
+            // Attach murid list
+            $reg['murid'] = $muridModel->where('registration_id', $reg['id'])->findAll();
 
             // Attach program info
             $program = $programModel->find($reg['program_id']);
@@ -332,6 +364,7 @@ class School extends BaseController
 
             foreach ($allPrograms as $prog) {
                 if (!$prog['start_date'] || !$prog['end_date']) continue;
+                if (!$programModel->isVisibleOnPublicViews($prog)) continue;
 
                 $limit     = (int) ($prog['registration_limit'] ?? 0);
                 $used      = $programModel->getUsedCapacity((int) $prog['id']);

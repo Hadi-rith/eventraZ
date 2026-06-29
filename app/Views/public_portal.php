@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvenTraZ - Portal Awam</title>
+    <title>EventraZ - Portal Awam</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -32,20 +32,16 @@
         .page-section.active { display: block; }
         .capacity-bar { height: 8px; border-radius: 99px; background: #e5e7eb; overflow: hidden; margin-top: 4px; }
         .capacity-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
-        @media (max-width: 900px) {
-            body.flex { display: block; }
-            .sidebar { position: relative; width: 100%; height: auto; }
-            .ml-\[280px\] { margin-left: 0 !important; }
-        }
     </style>
+    <?= view('partials/mobile_responsive', ['mobileLayout' => 'sidebar']) ?>
 </head>
-<body class="flex">
+<body class="flex app-shell">
 
-    <div class="sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
+    <div class="sidebar app-sidebar p-6 flex flex-col justify-between text-white shadow-2xl z-10">
         <div>
             <div class="mb-8 border-b border-white/15 pb-4 text-center">
-                <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EvenTraZ" class="brand-logo mx-auto mb-3">
-                <h1 class="text-lg font-black text-white tracking-widest">EvenTraZ Portal</h1>
+                <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ" class="brand-logo mx-auto mb-3">
+                <h1 class="text-lg font-black text-white tracking-widest">EventraZ Portal</h1>
                 <p class="text-[9px] text-yellow-200 font-bold mt-1">Orang Awam</p>
                 <p class="text-[10px] text-white mt-2 font-semibold"><?= esc(session('name')) ?></p>
                 <p class="text-[9px] text-yellow-100"><?= esc(session('email')) ?></p>
@@ -70,7 +66,7 @@
         </a>
     </div>
 
-    <div class="ml-[280px] w-full p-10 flex justify-center items-start min-h-screen py-12">
+    <div class="app-main ml-[280px] w-full p-10 flex justify-center items-start min-h-screen py-12">
 
         <!-- ── DAFTAR SECTION ── -->
         <div id="seksyenDaftar" class="page-section active w-full max-w-4xl">
@@ -186,7 +182,7 @@
                         <p class="text-xs text-slate-400 mt-1">Senarai program yang telah didaftarkan.</p>
                     </div>
                     <button onclick="muatPendaftaranSaya()" class="text-xs text-[#8a0028] font-bold hover:underline flex items-center gap-1">
-                        <i class="fa-solid fa-rotate-right"></i> Muat Semula
+                        <i class="fa-solid fa-rotate-right"></i> Refresh
                     </button>
                 </div>
                 <div id="senaraiPendaftaranSaya">
@@ -197,9 +193,7 @@
 
     </div>
 
-    <p class="fixed bottom-3 right-4 text-[10px] text-slate-300 tracking-wide pointer-events-none select-none z-50">
-        developed by <span class="text-[#d4a0b0] font-semibold">Hadi</span>
-    </p>
+    <?= view('partials/footer_watermark') ?>
 
     <script>
         // ── Page navigation ──
@@ -218,8 +212,20 @@
             if (seksyen === 'saya') muatPendaftaranSaya();
         }
 
-        window.onload = function () {
-            muatProgramUtama();
+        window.onload = async function () {
+            await muatProgramUtama();
+
+            // Pre-select program from URL ?program=ID (from Acara page)
+            var urlParams = new URLSearchParams(window.location.search);
+            var preProgram = urlParams.get('program');
+            if (preProgram) {
+                var drop = document.getElementById('mainProgList');
+                drop.value = preProgram;
+                if (drop.value) {
+                    await onMainProgramChange();
+                    document.getElementById('regFormAwam').scrollIntoView({ behavior: 'smooth' });
+                }
+            }
         };
 
         async function muatProgramUtama() {

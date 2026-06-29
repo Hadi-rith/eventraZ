@@ -34,7 +34,7 @@
         /* Logo */
         .logo-wrap { margin-bottom: 1.75rem; }
         .logo-wrap img {
-            width: 110px;
+            width: 160px;
             height: 110px;
             border-radius: 24px;
             object-fit: cover;
@@ -226,8 +226,9 @@
             font-weight: 600;
         }
     </style>
+    <?= view('partials/mobile_responsive', ['mobileLayout' => 'default']) ?>
 </head>
-<body>
+<body class="login-page">
 
 <div class="card">
     <div class="logo-wrap">
@@ -369,7 +370,7 @@
         <i class="fa-solid fa-user-shield"></i> Log Masuk Admin
     </button>
 
-    <p class="watermark">developed by <span>Hadi</span></p>
+    <p class="watermark">Developed by <span>Hadi</span></p>
 </div>
 
 <script>
@@ -503,7 +504,7 @@
     async function doSignup(event, role) {
         event.preventDefault();
         var form     = event.target;
-        var endpoint = role === 'school' ? '<?= base_url("signup/school") ?>' : '<?= base_url("signup/awam") ?>';
+        var endpoint = role === 'school' ? '<?= base_url("login/sekolah") ?>' : '<?= base_url("login/awam") ?>';
 
         Swal.fire({ title: 'Mendaftar Akaun...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
 
