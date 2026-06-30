@@ -118,7 +118,7 @@ class Login extends BaseController
             ]);
             return $this->response->setJSON([
                 'success'  => true,
-                'redirect' => 'public/portal',
+                'redirect' => 'awam/portal',
             ]);
         }
 
@@ -174,7 +174,7 @@ class Login extends BaseController
             return redirect()->to('/school/portal');
         }
 
-        return redirect()->to('/public/portal');
+        return redirect()->to('/awam/portal');
     }
 
     // ------------------------------------------------------------------

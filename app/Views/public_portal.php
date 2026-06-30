@@ -55,7 +55,7 @@
                     class="w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
                     <i class="fa-solid fa-clipboard-list"></i> PENDAFTARAN SAYA
                 </button>
-                <button onclick="window.location.href='<?= base_url('public/events') ?>'"
+                <button onclick="window.location.href='<?= base_url('awam/events') ?>'"
                     class="w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
                     <i class="fa-solid fa-calendar-days"></i> ACARA
                 </button>
@@ -230,7 +230,7 @@
 
         async function muatProgramUtama() {
             try {
-                const res  = await fetch('<?= base_url('public/programs') ?>?t=' + Date.now(), { cache: 'no-store' });
+                const res  = await fetch('<?= base_url('awam/programs') ?>?t=' + Date.now(), { cache: 'no-store' });
                 const list = await res.json();
                 var drop = document.getElementById('mainProgList');
                 drop.innerHTML = '<option value="">-- Sila Pilih Program --</option>';
@@ -270,7 +270,7 @@
             if (drop.value) {
                 updateCapacityUI(opt.dataset.regLimit, opt.dataset.used, opt.dataset.remaining, opt.dataset.isFull === '1');
                 try {
-                    const res  = await fetch('<?= base_url('public/programs/sub') ?>/' + drop.value + '?t=' + Date.now(), { cache: 'no-store' });
+                    const res  = await fetch('<?= base_url('awam/programs/sub') ?>/' + drop.value + '?t=' + Date.now(), { cache: 'no-store' });
                     const subs = await res.json();
                     if (Array.isArray(subs) && subs.length) {
                         var subDrop = document.getElementById('subProgList');
@@ -356,13 +356,12 @@
             var progId = document.getElementById('subProgList').value || document.getElementById('mainProgList').value;
             if (!progId) { Swal.fire({ icon: 'warning', title: 'Program belum dipilih' }); return; }
 
-            var bil = parseInt(document.getElementById('bilAhli').value || 0);
             var body = new FormData(form);
             body.set('programId', progId);
 
             Swal.fire({ title: 'Menghantar pendaftaran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
-                const res    = await fetch('<?= base_url('public/daftar') ?>', { method: 'POST', body });
+                const res    = await fetch('<?= base_url('awam/daftar') ?>', { method: 'POST', body });
                 const result = await res.json();
                 Swal.close();
                 if (result.success) {
@@ -384,7 +383,7 @@
             var container = document.getElementById('senaraiPendaftaranSaya');
             container.innerHTML = '<p class="text-center text-slate-400 text-sm py-12"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuatkan...</p>';
             try {
-                const res    = await fetch('<?= base_url('public/my-registrations') ?>?t=' + Date.now(), { cache: 'no-store' });
+                const res    = await fetch('<?= base_url('awam/my-registrations') ?>?t=' + Date.now(), { cache: 'no-store' });
                 const result = await res.json();
                 if (!result.success || !result.data.length) {
                     container.innerHTML = '<p class="text-center text-slate-400 text-sm py-12">Tiada rekod pendaftaran.</p>'; return;

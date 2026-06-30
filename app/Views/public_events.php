@@ -49,7 +49,7 @@
                 <?php endif; ?>
             </div>
             <nav class="space-y-3">
-                <a href="<?= base_url('public/portal') ?>"
+                <a href="<?= base_url('awam/portal') ?>"
                     class="w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
                     <i class="fa-solid fa-arrow-left"></i> KEMBALI
                 </a>
@@ -137,7 +137,7 @@
 
         async function muatAcara() {
             try {
-                const res    = await fetch('<?= base_url('public/events-data') ?>?t=' + Date.now());
+                const res    = await fetch('<?= base_url('awam/events-data') ?>?t=' + Date.now());
                 const result = await res.json();
                 if (!result.success) { showError('Gagal memuatkan acara'); return; }
                 var total = (result.upcoming?.length||0) + (result.ongoing?.length||0) + (result.past?.length||0);
@@ -211,7 +211,7 @@
 
         // ── Redirect to portal with program pre-selected ──
         function daftarSekarang(programId) {
-            window.location.href = '<?= base_url('public/portal') ?>?program=' + programId;
+            window.location.href = '<?= base_url('awam/portal') ?>?program=' + programId;
         }
 
         function showError(msg) {

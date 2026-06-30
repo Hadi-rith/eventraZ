@@ -7,9 +7,28 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --maroon: #8a0028; --maroon-dark: #520018; --gold: #ffc20e; --ink: #231f20; }
+
+        /* Flatpickr theming to match EventraZ branding */
+        .flatpickr-day.selected, .flatpickr-day.selected:hover,
+        .flatpickr-day.startRange, .flatpickr-day.endRange {
+            background: var(--maroon); border-color: var(--maroon);
+        }
+        .flatpickr-day.today { border-color: var(--gold); }
+        .flatpickr-day:hover { background: #fdf0e8; }
+        .flatpickr-months .flatpickr-month,
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        span.flatpickr-weekday { background: var(--maroon); color: #fff; fill: #fff; }
+        .flatpickr-current-month input.cur-year { color: #fff; }
+        .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { fill: #fff; }
+        .numInputWrapper span.arrowUp:after { border-bottom-color: var(--maroon); }
+        .numInputWrapper span.arrowDown:after { border-top-color: var(--maroon); }
+        .flatpickr-time input:focus, .flatpickr-time .flatpickr-am-pm:focus { background: #fdf0e8; }
+        .flatpickr-time .flatpickr-am-pm:hover, .flatpickr-time input:hover { background: #fdf0e8; }
         body {
             font-family: 'Poppins', sans-serif;
             background:
@@ -72,12 +91,21 @@ $isSuperAdmin = ($role === 'super_admin');
 
         <!-- Program Filter (data tabs only) -->
         <div class="mb-6" id="filterWrap">
-            <label class="block text-[10px] font-bold text-yellow-100 uppercase mb-2 ml-1 tracking-wider">Tapis Program</label>
-            <select id="filterProgram" onchange="tapisSemuaData()"
+            <label class="block text-[10px] font-bold text-yellow-100 uppercase mb-2 ml-1 tracking-wider">Tapis Program Utama</label>
+            <select id="filterProgramMain" onchange="bilaTukarFilterUtama()"
                 style="color:#111827;background:#fff;"
                 class="w-full p-3 bg-white border border-white/70 rounded-xl text-xs text-slate-900 outline-none focus:ring-2 focus:ring-yellow-300">
                 <option value="SEMUA">-- SEMUA PROGRAM --</option>
             </select>
+
+            <div id="filterSubWrap" class="mt-3 hidden">
+                <label class="block text-[10px] font-bold text-yellow-100 uppercase mb-2 ml-1 tracking-wider">Tapis Sub Program</label>
+                <select id="filterProgramSub" onchange="tapisSemuaData()"
+                    style="color:#111827;background:#fff;"
+                    class="w-full p-3 bg-white border border-white/70 rounded-xl text-xs text-slate-900 outline-none focus:ring-2 focus:ring-yellow-300">
+                    <option value="SEMUA">-- SEMUA SUB PROGRAM --</option>
+                </select>
+            </div>
         </div>
 
         <nav class="space-y-2">
@@ -190,15 +218,18 @@ $isSuperAdmin = ($role === 'super_admin');
                 </div>
                 <div class="col-span-12 md:col-span-3">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Tarikh Mula *</label>
-                    <input type="date" id="startDate" name="start_date" class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
+                    <input type="text" id="startDate" name="start_date" placeholder="DD/MM/YYYY" autocomplete="off"
+                        class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
                 </div>
                 <div class="col-span-12 md:col-span-3">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Tarikh Tamat *</label>
-                    <input type="date" id="endDate" name="end_date" class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
+                    <input type="text" id="endDate" name="end_date" placeholder="DD/MM/YYYY" autocomplete="off"
+                        class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
                 </div>
                 <div class="col-span-12 md:col-span-3">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Masa Acara</label>
-                    <input type="time" id="eventTime" name="event_time" class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
+                    <input type="text" id="eventTime" name="event_time" placeholder="--:-- --" autocomplete="off"
+                        class="eventraz-field w-full p-3 border rounded-xl text-sm outline-none">
                 </div>
                 <div class="col-span-12 md:col-span-3">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1 tracking-wider">Penganjur</label>
@@ -697,11 +728,33 @@ window.onload = function () {
 // ============================================================
 // STATUS / DATE HELPERS
 // ============================================================
+var fpStartDate, fpEndDate, fpEventTime;
+
 function tetapkanTarikhMinimum() {
-    var s = document.getElementById('startDate');
-    var e = document.getElementById('endDate');
-    if (s) { s.addEventListener('change', kemasKiniStatusPreview); }
-    if (e) { e.addEventListener('change', kemasKiniStatusPreview); }
+    fpStartDate = flatpickr('#startDate', {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        allowInput: true,
+        onChange: kemasKiniStatusPreview
+    });
+    fpEndDate = flatpickr('#endDate', {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        allowInput: true,
+        onChange: kemasKiniStatusPreview
+    });
+    fpEventTime = flatpickr('#eventTime', {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: 'H:i',
+        altInput: true,
+        altFormat: 'h:i K',
+        time_24hr: false,
+        minuteIncrement: 5,
+        allowInput: true
+    });
 }
 
 function kemasKiniStatusPreview() {
@@ -731,15 +784,16 @@ async function muatSenaraiProgram() {
     programCache = list;
     console.log('[DEBUG] programs count:', list.length);
 
-    var drop = document.getElementById('filterProgram');
-    var selected = drop.value || 'SEMUA';
-    drop.innerHTML = '<option value="SEMUA">-- SEMUA PROGRAM --</option>';
-    list.forEach(p => {
+    var dropMain = document.getElementById('filterProgramMain');
+    var selectedMain = dropMain.value || 'SEMUA';
+    dropMain.innerHTML = '<option value="SEMUA">-- SEMUA PROGRAM --</option>';
+    list.filter(p => !p.parent_id || p.parent_id === 0 || p.parent_id === null).forEach(p => {
         var o = document.createElement('option');
         var statusLabel = String(p.status||'').toUpperCase() === 'AKTIF' ? '' : ' (Tidak Aktif)';
-        o.value = p.nama; o.textContent = p.nama + statusLabel; drop.appendChild(o);
+        o.value = p.nama; o.dataset.dbId = p.db_id; o.textContent = p.nama + statusLabel; dropMain.appendChild(o);
     });
-    if ([...drop.options].some(o => o.value === selected)) drop.value = selected;
+    if ([...dropMain.options].some(o => o.value === selectedMain)) dropMain.value = selectedMain;
+    binaFilterSubProgram(list);
 
     var parentDrop = document.getElementById('parentProgramSelect');
     parentDrop.innerHTML = '<option value="">-- Pilih Program Induk --</option>';
@@ -749,6 +803,43 @@ async function muatSenaraiProgram() {
     });
 
     binaSenaraProgram(list);
+}
+
+// Builds/refreshes the Sub Program dropdown based on the currently selected Main Program.
+// Shows the dropdown only when the selected main program actually has sub programs.
+function binaFilterSubProgram(list) {
+    var dropMain = document.getElementById('filterProgramMain');
+    var subWrap  = document.getElementById('filterSubWrap');
+    var dropSub  = document.getElementById('filterProgramSub');
+    var selectedSub = dropSub.value || 'SEMUA';
+
+    var mainOpt = dropMain.options[dropMain.selectedIndex];
+    var mainDbId = mainOpt ? mainOpt.dataset.dbId : null;
+
+    var subs = (mainOpt && mainOpt.value !== 'SEMUA' && mainDbId)
+        ? list.filter(p => p.parent_id && String(p.parent_id) === String(mainDbId))
+        : [];
+
+    dropSub.innerHTML = '<option value="SEMUA">-- SEMUA SUB PROGRAM --</option>';
+    subs.forEach(p => {
+        var o = document.createElement('option');
+        var statusLabel = String(p.status||'').toUpperCase() === 'AKTIF' ? '' : ' (Tidak Aktif)';
+        o.value = p.nama; o.textContent = p.nama + statusLabel; dropSub.appendChild(o);
+    });
+
+    if (subs.length) {
+        subWrap.classList.remove('hidden');
+        if ([...dropSub.options].some(o => o.value === selectedSub)) dropSub.value = selectedSub;
+    } else {
+        subWrap.classList.add('hidden');
+        dropSub.value = 'SEMUA';
+    }
+}
+
+// Called when the Main Program dropdown changes: rebuild the Sub dropdown then re-filter the data.
+function bilaTukarFilterUtama() {
+    binaFilterSubProgram(programCache);
+    tapisSemuaData();
 }
 
 function setProgramType(type) {
@@ -950,9 +1041,9 @@ function mulaEditProgram(programCode) {
     form.dataset.type = isSub ? 'sub' : 'utama';
     document.getElementById('programCode').value         = program.kod || program.id || '';
     document.getElementById('programName').value         = program.nama || '';
-    document.getElementById('startDate').value           = program.mula || program.start_date || '';
-    document.getElementById('endDate').value             = program.tamat || program.end_date || '';
-    document.getElementById('eventTime').value           = program.event_time || '';
+    if (fpStartDate) fpStartDate.setDate(program.mula || program.start_date || '', true);
+    if (fpEndDate)   fpEndDate.setDate(program.tamat || program.end_date || '', true);
+    if (fpEventTime) fpEventTime.setDate(program.event_time || '', true);
     document.getElementById('organizer').value           = program.organizer || '';
     document.getElementById('picNama').value             = program.pic_nama || '';
     document.getElementById('picTel').value              = program.pic_tel || '';
@@ -979,6 +1070,9 @@ function mulaEditProgram(programCode) {
 function resetProgramForm() {
     var form = document.getElementById('programForm');
     form.reset();
+    if (fpStartDate) fpStartDate.clear();
+    if (fpEndDate)   fpEndDate.clear();
+    if (fpEventTime) fpEventTime.clear();
     form.dataset.mode = 'create'; form.dataset.originalCode = '';
     document.getElementById('btnDaftarProgram').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> SIMPAN PROGRAM';
     document.getElementById('btnBatalEditProgram').style.display = 'none';
@@ -1035,9 +1129,27 @@ async function muatDataLive() {
 }
 
 function tapisSemuaData() {
-    var filter  = (document.getElementById('filterProgram').value || 'SEMUA').trim();
-    var sekolah = masterData.sekolah.filter(r  => filter === 'SEMUA' || r.program === filter);
-    var awam    = masterData.orangAwam.filter(r => filter === 'SEMUA' || r.program === filter);
+    var mainVal = (document.getElementById('filterProgramMain').value || 'SEMUA').trim();
+    var subVal  = (document.getElementById('filterProgramSub').value || 'SEMUA').trim();
+
+    var namaSenarai = null; // null = no restriction (SEMUA)
+    if (subVal !== 'SEMUA') {
+        // Specific sub program chosen
+        namaSenarai = [subVal];
+    } else if (mainVal !== 'SEMUA') {
+        // Main program chosen, sub still on SEMUA -> include the main program itself
+        // PLUS all of its sub programs (if any), so nothing gets hidden.
+        namaSenarai = [mainVal];
+        var mainOpt = [...document.getElementById('filterProgramMain').options].find(o => o.value === mainVal);
+        var mainDbId = mainOpt ? mainOpt.dataset.dbId : null;
+        if (mainDbId) {
+            programCache.filter(p => p.parent_id && String(p.parent_id) === String(mainDbId))
+                .forEach(p => namaSenarai.push(p.nama));
+        }
+    }
+
+    var sekolah = masterData.sekolah.filter(r  => !namaSenarai || namaSenarai.includes(r.program));
+    var awam    = masterData.orangAwam.filter(r => !namaSenarai || namaSenarai.includes(r.program));
 
     document.getElementById('statSekolah').textContent = sekolah.length;
     document.getElementById('statAwam').textContent    = awam.length;

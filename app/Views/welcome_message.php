@@ -51,12 +51,8 @@
     <!-- NAVBAR -->
     <nav class="fixed top-0 left-0 right-0 z-50 px-8 py-4 flex items-center justify-between glass border-b border-white/60">
         <div class="flex items-center gap-3">
-            <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EvenTraZ"
-                class="w-10 h-10 rounded-xl object-cover shadow">
-            <div>
-                <span class="font-black text-[#520018] text-lg tracking-tight">EvenTraZ</span>
-                <p class="text-[9px] text-slate-400 uppercase tracking-widest font-bold -mt-0.5">PSKT</p>
-            </div>
+            <img src="<?= base_url('assets/eventraz-logo-clear.png') ?>" alt="EvenTraZ"
+                class="h-14 w-auto object-contain">
         </div>
         <a href="<?= base_url('login') ?>"
             class="maroon-btn text-white text-xs font-bold px-4 sm:px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
@@ -95,8 +91,8 @@
         <div class="flex-1 flex justify-center float-anim">
             <div class="glass rounded-3xl p-8 w-full max-w-sm shadow-2xl">
                 <div class="text-center mb-6">
-                    <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EvenTraZ"
-                        class="w-24 h-24 rounded-2xl mx-auto shadow-lg object-cover mb-4">
+                    <img src="<?= base_url('assets/eventraz-icon.png') ?>" alt="EvenTraZ"
+                        class="w-24 h-24 object-contain mx-auto mb-4 drop-shadow-lg">
                     <h3 class="font-black text-[#520018] text-lg">EvenTraZ</h3>
                     <p class="text-[10px] text-slate-400 uppercase tracking-widest">Event Tracking, Registration &amp; Engagement Zone</p>
                 </div>
@@ -136,7 +132,7 @@
     <!-- FEATURES -->
     <section class="pb-20 px-8 max-w-6xl mx-auto">
         <div class="text-center mb-12">
-            <h2 class="text-2xl font-black text-[#520018] mb-2">Mengapa EvenTraZ?</h2>
+            <h2 class="text-2xl font-black text-[#520018] mb-2">Kenapa EvenTraZ?</h2>
             <p class="text-slate-500 text-sm">Semua yang anda perlukan untuk urus acara dengan cekap</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -189,7 +185,7 @@
     <!-- FOOTER -->
     <footer class="border-t border-white/60 py-6 px-8 text-center glass">
         <p class="text-[10px] text-slate-400 uppercase tracking-widest">
-            &copy; <?= date('Y') ?> EvenTraZ — PSKT &nbsp;|&nbsp; Developed by <span class="text-[#d4a0b0] font-semibold">Hadi</span>
+            &copy; <?= date('Y') ?> EvenTraZ &nbsp;|&nbsp; Developed by <span class="text-[#d4a0b0] font-semibold">Hadi</span>
         </p>
     </footer>
 

@@ -34,11 +34,9 @@
         /* Logo */
         .logo-wrap { margin-bottom: 1.75rem; }
         .logo-wrap img {
-            width: 160px;
-            height: 110px;
-            border-radius: 24px;
-            object-fit: cover;
-            box-shadow: 0 10px 28px rgba(82, 0, 24, 0.15);
+            width: 220px;
+            height: auto;
+            object-fit: contain;
             display: block;
             margin: 0 auto;
         }
@@ -232,8 +230,7 @@
 
 <div class="card">
     <div class="logo-wrap">
-        <img src="<?= base_url('assets/eventraz-logo.jpeg') ?>" alt="EventraZ Logo">
-        <h1>EvenTraZ</h1>
+        <img src="<?= base_url('assets/eventraz-logo-clear.png') ?>" alt="EventraZ Logo">
         <p>Portal Log Masuk Rasmi</p>
     </div>
 

@@ -8,6 +8,10 @@ class DaftarFamilyModel extends Model
 {
     protected $table      = 'daftar_family';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['registration_id', 'nama_ahli', 'ic_ahli'];
-    protected $useTimestamps  = false;
+    protected $allowedFields = [
+        'registration_id',
+        'nama_ahli',
+        'ic_ahli',
+    ];
+    protected $useTimestamps = false;
 }

@@ -29,7 +29,7 @@ class PublicPortal extends BaseController
 
     public function index()
     {
-        return redirect()->to(base_url('public/events'));
+        return redirect()->to(base_url('awam/events'));
     }
 
     public function portal()

@@ -48,21 +48,21 @@ $routes->post('admin/accounts/create/(:segment)',           'Admin::createAccoun
 $routes->post('admin/accounts/update/(:segment)/(:num)',    'Admin::updateAccount/$1/$2');
 $routes->post('admin/accounts/delete/(:segment)/(:num)',    'Admin::deleteAccount/$1/$2');
 
-// Events tab (alias — same data as programs, used by event management view)
+// Events tab
 $routes->get('admin/events',                                'Admin::getEvents');
 $routes->post('admin/events/update/(:num)',                  'Admin::updateEvent/$1');
 
 // ============================================================
 // SCHOOL PORTAL
 // ============================================================
-$routes->get('school',                                      'School::index');       // redirects → school/events after login
+$routes->get('school',                                      'School::index');
 $routes->get('school/portal',                               'School::portal');
 
 // Registration
 $routes->post('school/daftar',                              'School::simpanPendaftaran');
 $routes->get('school/my-registrations',                     'School::myRegistrations');
 
-// Program lists (used by registration form dropdowns)
+// Program lists
 $routes->get('school/programs',                             'School::getProgramList');
 $routes->get('school/programs/sub/(:num)',                  'School::getSubPrograms/$1');
 $routes->get('school/program-details/(:num)',               'School::getProgramDetails/$1');
@@ -72,20 +72,20 @@ $routes->get('school/events',                               'School::events');
 $routes->get('school/events-data',                          'School::getEvents');
 
 // ============================================================
-// PUBLIC PORTAL
+// PUBLIC PORTAL (awam)
 // ============================================================
-$routes->get('public',                                      'PublicPortal::index');  // redirects → public/events after login
-$routes->get('public/portal',                               'PublicPortal::portal'); // registration form page
+$routes->get('awam',                                        'PublicPortal::index');
+$routes->get('awam/portal',                                 'PublicPortal::portal');
 
 // Registration
-$routes->post('public/daftar',                              'PublicPortal::simpanPendaftaran');
-$routes->get('public/my-registrations',                     'PublicPortal::myRegistrations');
+$routes->post('awam/daftar',                                'PublicPortal::simpanPendaftaran');
+$routes->get('awam/my-registrations',                       'PublicPortal::myRegistrations');
 
-// Program lists (used by registration form dropdowns)
-$routes->get('public/programs',                             'PublicPortal::getProgramList');
-$routes->get('public/programs/sub/(:num)',                  'PublicPortal::getSubPrograms/$1');
-$routes->get('public/program-details/(:num)',               'PublicPortal::getProgramDetails/$1');
+// Program lists
+$routes->get('awam/programs',                               'PublicPortal::getProgramList');
+$routes->get('awam/programs/sub/(:num)',                    'PublicPortal::getSubPrograms/$1');
+$routes->get('awam/program-details/(:num)',                 'PublicPortal::getProgramDetails/$1');
 
 // Events page
-$routes->get('public/events',                               'PublicPortal::events');
-$routes->get('public/events-data',                          'PublicPortal::getEvents');
+$routes->get('awam/events',                                 'PublicPortal::events');
+$routes->get('awam/events-data',                            'PublicPortal::getEvents');
