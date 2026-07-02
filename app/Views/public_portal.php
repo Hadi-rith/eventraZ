@@ -32,6 +32,9 @@
         .page-section.active { display: block; }
         .capacity-bar { height: 8px; border-radius: 99px; background: #e5e7eb; overflow: hidden; margin-top: 4px; }
         .capacity-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
+        .filter-pill-saya { background: rgba(138,0,40,.06); color: #8a0028; border: 1px solid rgba(138,0,40,.15); cursor: pointer; }
+        .filter-pill-saya:hover { background: rgba(138,0,40,.12); }
+        .filter-pill-saya.active-filter { background: linear-gradient(135deg, var(--maroon), var(--maroon-dark)); color: #fff; border-color: transparent; box-shadow: 0 10px 20px rgba(138,0,40,.2); }
     </style>
     <?= view('partials/mobile_responsive', ['mobileLayout' => 'sidebar']) ?>
 </head>
@@ -48,12 +51,16 @@
             </div>
             <nav class="space-y-3">
                 <button onclick="tunjukSeksyen('daftar')" id="menuDaftar"
-                    class="w-full text-left p-4 text-xs font-bold active-tab flex items-center gap-3 rounded-xl shadow-md">
+                    class="w-full text-left p-4 text-xs font-bold active-tab flex items-center gap-3 rounded-xl">
                     <i class="fa-solid fa-file-signature"></i> DAFTAR PROGRAM
                 </button>
                 <button onclick="tunjukSeksyen('saya')" id="menuSaya"
                     class="w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
                     <i class="fa-solid fa-clipboard-list"></i> PENDAFTARAN SAYA
+                </button>
+                <button onclick="tunjukSeksyen('kehadiran')" id="menuKehadiran"
+                    class="w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
+                    <i class="fa-solid fa-qrcode"></i> KEHADIRAN
                 </button>
                 <button onclick="window.location.href='<?= base_url('awam/events') ?>'"
                     class="w-full text-left p-4 text-xs font-bold text-yellow-100 hover:bg-white/10 flex items-center gap-3 rounded-xl transition-all">
@@ -185,8 +192,63 @@
                         <i class="fa-solid fa-rotate-right"></i> Refresh
                     </button>
                 </div>
+
+                <!-- Closest upcoming event (always pinned, max 1) -->
+                <div id="acaraTerdekatWrap" style="display:none" class="mb-7">
+                    <p class="text-[10px] font-bold text-[#8a0028] uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-star"></i> Acara Paling Terdekat
+                    </p>
+                    <div id="acaraTerdekat"></div>
+                </div>
+
+                <!-- Filter pills -->
+                <div class="flex gap-2 mb-5">
+                    <button type="button" onclick="tukarFilterSaya('akan_datang')" id="filterAkanDatang"
+                        class="filter-pill-saya active-filter text-[10px] font-bold uppercase px-4 py-2 rounded-full transition-all">
+                        <i class="fa-solid fa-calendar-plus mr-1"></i> Akan Datang
+                    </button>
+                    <button type="button" onclick="tukarFilterSaya('lepas')" id="filterLepas"
+                        class="filter-pill-saya text-[10px] font-bold uppercase px-4 py-2 rounded-full transition-all">
+                        <i class="fa-solid fa-clock-rotate-left mr-1"></i> Lepas
+                    </button>
+                </div>
+
                 <div id="senaraiPendaftaranSaya">
                     <p class="text-center text-slate-400 text-sm py-12"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuatkan...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── KEHADIRAN SECTION ── -->
+        <div id="seksyenKehadiran" class="page-section w-full max-w-md mx-auto">
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+            <div class="glass-card p-6">
+                <h2 class="text-lg font-black mb-1 text-center" style="color:var(--maroon)">Tandakan Kehadiran</h2>
+                <p class="text-xs text-gray-500 text-center mb-5">Imbas kod QR acara atau muat naik dari galeri anda.</p>
+
+                <div class="flex bg-gray-100 rounded-full p-1 mb-5">
+                    <button id="attTabScanBtn" onclick="attSwitchTab('scan')"
+                        class="flex-1 py-2 rounded-full text-xs font-bold eventraz-btn text-[#ffc20e]">
+                        <i class="fa-solid fa-camera mr-1"></i>Imbas QR
+                    </button>
+                    <button id="attTabUploadBtn" onclick="attSwitchTab('upload')"
+                        class="flex-1 py-2 rounded-full text-xs font-bold text-gray-600">
+                        <i class="fa-solid fa-upload mr-1"></i>Muat Naik QR
+                    </button>
+                </div>
+
+                <div id="attScanPane">
+                    <div id="att-qr-reader" class="rounded-2xl overflow-hidden shadow"></div>
+                </div>
+
+                <div id="attUploadPane" class="hidden text-center">
+                    <label class="block border-2 border-dashed rounded-2xl p-8 cursor-pointer hover:bg-black/[.02] transition" style="border-color: rgba(138,0,40,.3)">
+                        <i class="fa-solid fa-image text-3xl mb-2" style="color:var(--maroon)"></i>
+                        <p class="text-xs text-gray-600">Ketik untuk pilih imej QR dari galeri</p>
+                        <input type="file" id="attQrFileInput" accept="image/*" class="hidden">
+                    </label>
+                    <div id="attUploadPreview" class="mt-4"></div>
                 </div>
             </div>
         </div>
@@ -197,20 +259,174 @@
 
     <script>
         // ── Page navigation ──
+        var SEKSYEN_MAP = { daftar: ['seksyenDaftar', 'menuDaftar'], saya: ['seksyenSaya', 'menuSaya'], kehadiran: ['seksyenKehadiran', 'menuKehadiran'] };
         function tunjukSeksyen(seksyen) {
+            if (seksyen === 'kehadiran') setTimeout(() => attSwitchTab('scan'), 100);
+            if (seksyen !== 'kehadiran') attStopScanner();
+
             document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('nav button').forEach(btn => {
                 btn.classList.remove('active-tab');
                 btn.classList.add('text-yellow-100','hover:bg-white/10');
                 btn.style.borderRadius = '';
             });
-            var aktifId = seksyen === 'daftar' ? 'seksyenDaftar' : 'seksyenSaya';
-            var btnId   = seksyen === 'daftar' ? 'menuDaftar'    : 'menuSaya';
+            var map     = SEKSYEN_MAP[seksyen] || SEKSYEN_MAP.daftar;
+            var aktifId = map[0];
+            var btnId   = map[1];
             document.getElementById(aktifId).classList.add('active');
             var btn = document.getElementById(btnId);
             if (btn) { btn.classList.add('active-tab'); btn.classList.remove('text-yellow-100','hover:bg-white/10'); }
             if (seksyen === 'saya') muatPendaftaranSaya();
         }
+
+        // ── Kehadiran (QR attendance) ──
+        let attHtml5QrCode;
+        let attScanning = false;
+
+        function attSwitchTab(tab) {
+            const scanBtn = document.getElementById('attTabScanBtn');
+            const uploadBtn = document.getElementById('attTabUploadBtn');
+            const scanPane = document.getElementById('attScanPane');
+            const uploadPane = document.getElementById('attUploadPane');
+            if (!scanBtn) return; // section not on this page load yet
+
+            if (tab === 'scan') {
+                scanBtn.classList.add('eventraz-btn', 'text-[#ffc20e]'); scanBtn.classList.remove('text-gray-600');
+                uploadBtn.classList.remove('eventraz-btn', 'text-[#ffc20e]'); uploadBtn.classList.add('text-gray-600');
+                scanPane.classList.remove('hidden'); uploadPane.classList.add('hidden');
+                attStartScanner();
+            } else {
+                uploadBtn.classList.add('eventraz-btn', 'text-[#ffc20e]'); uploadBtn.classList.remove('text-gray-600');
+                scanBtn.classList.remove('eventraz-btn', 'text-[#ffc20e]'); scanBtn.classList.add('text-gray-600');
+                uploadPane.classList.remove('hidden'); scanPane.classList.add('hidden');
+                attStopScanner();
+            }
+        }
+
+        function attStartScanner() {
+            if (attScanning) return;
+            attHtml5QrCode = new Html5Qrcode('att-qr-reader');
+            Html5Qrcode.getCameras().then(cameras => {
+                if (!cameras || !cameras.length) {
+                    document.getElementById('att-qr-reader').innerHTML = '<p class="text-red-600 text-xs p-4">Tiada kamera dijumpai.</p>';
+                    return;
+                }
+                const camId = cameras.find(c => /back|rear|environment/i.test(c.label))?.id || cameras[0].id;
+                attHtml5QrCode.start(camId, { fps: 10, qrbox: 230 }, attOnScanSuccess, () => {}).then(() => attScanning = true);
+            }).catch(() => {
+                document.getElementById('att-qr-reader').innerHTML = '<p class="text-red-600 text-xs p-4">Akses kamera ditolak.</p>';
+            });
+        }
+        function attStopScanner() {
+            if (attHtml5QrCode && attScanning) attHtml5QrCode.stop().then(() => attScanning = false).catch(() => {});
+        }
+        function attOnScanSuccess(decodedText) {
+            attStopScanner();
+            attSubmitQrText(decodedText);
+        }
+
+        // Downloaded/screenshotted QR images often have a transparent background or no
+        // white "quiet zone" margin around the code — both trip up the zxing decoder
+        // that html5-qrcode uses. Flattening onto a white canvas with padding (and
+        // upscaling tiny images) fixes the vast majority of these upload failures.
+        function attPreprocessQrImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    const PAD = 40;
+                    const MIN_SIZE = 400;
+                    const scale = Math.max(1, MIN_SIZE / Math.max(img.naturalWidth, img.naturalHeight));
+                    const w = Math.round(img.naturalWidth * scale);
+                    const h = Math.round(img.naturalHeight * scale);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w + PAD * 2;
+                    canvas.height = h + PAD * 2;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, PAD, PAD, w, h);
+                    canvas.toBlob(blob => {
+                        if (!blob) { reject(new Error('canvas_blob_failed')); return; }
+                        resolve(new File([blob], 'qr-processed.png', { type: 'image/png' }));
+                    }, 'image/png');
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image_load_failed')); };
+                img.src = url;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('attQrFileInput');
+            if (!input) return;
+            input.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                document.getElementById('attUploadPreview').innerHTML = '<p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Membaca kod QR...</p>';
+                const tempScanner = new Html5Qrcode('attUploadPreview');
+                attPreprocessQrImage(file)
+                    .then(processedFile => tempScanner.scanFile(processedFile, true))
+                    .catch(() => tempScanner.scanFile(file, true)) // fall back to the raw file if preprocessing (or the processed decode) fails
+                    .then(decodedText => { document.getElementById('attUploadPreview').innerHTML = ''; attSubmitQrText(decodedText); })
+                    .catch(() => { document.getElementById('attUploadPreview').innerHTML = '<p class="text-xs text-red-600 mt-2">Kod QR tidak dikesan dalam imej ini.</p>'; });
+            });
+        });
+
+        function attSubmitQrText(qrText) {
+    fetch('<?= base_url('attendance/process-scan') ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'qr_text=' + encodeURIComponent(qrText)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success === true) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Kehadiran Berjaya',
+                text: res.session?.session_name || 'Kehadiran anda telah direkodkan.',
+                confirmButtonColor: '#8a0028'
+            });
+        } else if (res.status === 'duplicate') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Sudah Direkodkan',
+                text: res.message || 'Kehadiran anda telah direkodkan sebelum ini.',
+                confirmButtonColor: '#8a0028'
+            });
+        } else if (res.status === 'expired') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Sesi Tamat Tempoh',
+                text: res.message || 'Sesi kehadiran ini telah tamat.',
+                confirmButtonColor: '#8a0028'
+            });
+        } else if (res.status === 'not_registered') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tidak Berdaftar',
+                text: res.message || 'Anda tidak berdaftar untuk program ini. Sila daftar terlebih dahulu.',
+                confirmButtonColor: '#8a0028'
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tidak Sah / Tamat Tempoh',
+                text: res.message || 'Kod QR tidak sah atau sesi telah tamat.',
+                confirmButtonColor: '#8a0028'
+            });
+        }
+    })
+    .catch(function() {
+        Swal.fire({
+            icon: 'error',
+            title: 'Ralat',
+            text: 'Sila cuba lagi.',
+            confirmButtonColor: '#8a0028'
+        });
+    });
+}
 
         window.onload = async function () {
             await muatProgramUtama();
@@ -379,42 +595,123 @@
             }
         }
 
+        function togglMuridList(id) {
+            var box  = document.getElementById(id);
+            var icon = document.getElementById(id + '_icon');
+            if (!box) return;
+            box.classList.toggle('hidden');
+            if (icon) icon.style.transform = box.classList.contains('hidden') ? '' : 'rotate(180deg)';
+        }
+
+        var pendaftaranSayaCache = [];
+        var currentFilterSaya    = 'akan_datang';
+
         async function muatPendaftaranSaya() {
             var container = document.getElementById('senaraiPendaftaranSaya');
             container.innerHTML = '<p class="text-center text-slate-400 text-sm py-12"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuatkan...</p>';
             try {
                 const res    = await fetch('<?= base_url('awam/my-registrations') ?>?t=' + Date.now(), { cache: 'no-store' });
                 const result = await res.json();
-                if (!result.success || !result.data.length) {
-                    container.innerHTML = '<p class="text-center text-slate-400 text-sm py-12">Tiada rekod pendaftaran.</p>'; return;
+                if (!result.success) {
+                    container.innerHTML = '<p class="text-center text-red-400 text-sm py-12">Gagal memuatkan pendaftaran.</p>'; return;
                 }
-                container.innerHTML = result.data.map(function(reg) {
-                    var today = new Date().toISOString().slice(0,10);
-                    var statusLabel = !reg.end_date ? 'Tidak diketahui' : (reg.end_date < today ? 'Selesai' : 'Akan Datang / Aktif');
-                    var statusCls   = reg.end_date < today ? 'bg-slate-100 text-slate-500' : 'bg-blue-100 text-blue-700';
-                    var ahli = Array.isArray(reg.ahli) ? reg.ahli : [];
-                    var jumlah = 1 + parseInt(reg.bil_ahli || 0);
-                    return `<div class="border border-white/80 bg-white/60 rounded-2xl p-5 mb-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <p class="font-black text-[#520018] text-sm">${reg.program_name}</p>
-                                <p class="text-[10px] text-slate-400 mt-0.5">${reg.start_date || '—'} → ${reg.end_date || '—'}</p>
-                            </div>
-                            <span class="${statusCls} text-[10px] font-bold px-3 py-1 rounded-full">${statusLabel}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 text-xs text-slate-600 mb-3">
-                            <div><span class="text-slate-400">Nama</span><br><b>${reg.nama}</b></div>
-                            <div><span class="text-slate-400">No. IC</span><br><b>${reg.ic}</b></div>
-                            <div><span class="text-slate-400">Emel</span><br><b>${reg.email}</b></div>
-                            <div><span class="text-slate-400">Jumlah Peserta</span><br><b class="text-[#8a0028]">${jumlah} orang</b></div>
-                        </div>
-                        ${ahli.length ? `<div class="text-[10px] text-slate-500 mt-2"><b>Ahli Keluarga:</b> ${ahli.map(a => a.nama_ahli).join(', ')}</div>` : ''}
-                        <div class="text-[10px] text-slate-400 mt-2">PIC: ${reg.pic_nama || '—'} | ${reg.pic_tel || '—'}</div>
-                    </div>`;
-                }).join('');
+                pendaftaranSayaCache = result.data || [];
+                renderPendaftaranSaya();
             } catch (err) {
                 container.innerHTML = '<p class="text-center text-red-400 text-sm py-12">Gagal memuatkan pendaftaran.</p>';
             }
+        }
+
+        // Split registrations into upcoming (ongoing/future) and past, each sorted so the
+        // most relevant item comes first (soonest upcoming, most recent past).
+        function klasifikasiPendaftaranSaya(data) {
+            var today = new Date().toISOString().slice(0, 10);
+            var upcoming = [], past = [];
+            data.forEach(function(reg) {
+                if (!reg.end_date || reg.end_date >= today) upcoming.push(reg);
+                else past.push(reg);
+            });
+            upcoming.sort(function(a, b) { return (a.start_date || '').localeCompare(b.start_date || ''); });
+            past.sort(function(a, b) { return (b.start_date || '').localeCompare(a.start_date || ''); });
+            return { upcoming: upcoming, past: past };
+        }
+
+        function tukarFilterSaya(filter) {
+            currentFilterSaya = filter;
+            document.getElementById('filterAkanDatang').classList.toggle('active-filter', filter === 'akan_datang');
+            document.getElementById('filterLepas').classList.toggle('active-filter', filter === 'lepas');
+            renderPendaftaranSaya();
+        }
+
+        function renderPendaftaranSaya() {
+            var wrap      = document.getElementById('acaraTerdekatWrap');
+            var terdekat  = document.getElementById('acaraTerdekat');
+            var container = document.getElementById('senaraiPendaftaranSaya');
+
+            if (!pendaftaranSayaCache.length) {
+                wrap.style.display = 'none';
+                container.innerHTML = '<p class="text-center text-slate-400 text-sm py-12">Tiada rekod pendaftaran.</p>';
+                return;
+            }
+
+            var grup = klasifikasiPendaftaranSaya(pendaftaranSayaCache);
+            var closest = grup.upcoming.length ? grup.upcoming[0] : null;
+            var upcomingRest = grup.upcoming.slice(1);
+
+            if (closest) {
+                wrap.style.display = '';
+                terdekat.innerHTML = buildRegCardSaya(closest, 'terdekat', true);
+            } else {
+                wrap.style.display = 'none';
+            }
+
+            var senarai = currentFilterSaya === 'lepas' ? grup.past : upcomingRest;
+            if (!senarai.length) {
+                container.innerHTML = '<p class="text-center text-slate-400 text-sm py-12">' +
+                    (currentFilterSaya === 'lepas' ? 'Tiada acara lepas.' : 'Tiada acara akan datang lain buat masa ini.') + '</p>';
+                return;
+            }
+
+            container.innerHTML = senarai.map(function(reg, idx) {
+                return buildRegCardSaya(reg, currentFilterSaya + '_' + idx, false);
+            }).join('');
+        }
+
+        function buildRegCardSaya(reg, idx, highlight) {
+            var today = new Date().toISOString().slice(0, 10);
+            var statusLabel = !reg.end_date ? 'Tidak diketahui' : (reg.end_date < today ? 'Selesai' : 'Akan Datang / Aktif');
+            var statusCls   = reg.end_date < today ? 'bg-slate-100 text-slate-500' : 'bg-blue-100 text-blue-700';
+            var ahli = Array.isArray(reg.ahli) ? reg.ahli : [];
+            var jumlah = 1 + parseInt(reg.bil_ahli || 0);
+            var ahliId = 'ahliList_' + idx;
+            var ahliHtml = ahli.map((a, i) => `<div class="flex justify-between gap-2 text-[10px] py-1.5 px-1 border-b border-white/60 last:border-0"><span class="text-slate-500 truncate">${i+1}. ${a.nama_ahli}</span>${a.ic_ahli ? `<span class="text-slate-400 whitespace-nowrap">${a.ic_ahli}</span>` : ''}</div>`).join('');
+            var cardCls = highlight
+                ? 'border-2 border-[#ffc20e] bg-gradient-to-br from-yellow-50 to-white shadow-lg rounded-2xl p-5 mb-4 relative'
+                : 'border border-white/80 bg-white/60 rounded-2xl p-5 mb-4';
+            return `<div class="${cardCls}">
+                ${highlight ? '<span class="absolute -top-3 left-5 bg-[#ffc20e] text-[#520018] text-[9px] font-black uppercase px-3 py-1 rounded-full shadow"><i class="fa-solid fa-star mr-1"></i>Terdekat</span>' : ''}
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <p class="font-black text-[#520018] text-sm">${reg.program_name}</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">${reg.start_date || '—'} → ${reg.end_date || '—'}</p>
+                    </div>
+                    <span class="${statusCls} text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">${statusLabel}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs text-slate-600 mb-3">
+                    <div><span class="text-slate-400">Nama</span><br><b class="break-words">${reg.nama}</b></div>
+                    <div><span class="text-slate-400">No. IC</span><br><b>${reg.ic}</b></div>
+                    <div><span class="text-slate-400">Emel</span><br><b class="break-words">${reg.email}</b></div>
+                    <div><span class="text-slate-400">Jumlah Peserta</span><br><b class="text-[#8a0028]">${jumlah} orang</b></div>
+                </div>
+                ${ahli.length ? `<div class="mb-3">
+                    <button type="button" onclick="togglMuridList('${ahliId}')" class="w-full flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase mb-1 bg-white/60 hover:bg-white/90 border border-white/80 rounded-xl px-3 py-2 transition-all">
+                        <span>Ahli Keluarga (${ahli.length})</span>
+                        <i id="${ahliId}_icon" class="fa-solid fa-chevron-down text-[#8a0028] transition-transform"></i>
+                    </button>
+                    <div id="${ahliId}" class="hidden bg-white/50 rounded-xl p-2 mt-1 max-h-48 overflow-y-auto">${ahliHtml}</div>
+                </div>` : ''}
+                <div class="text-[10px] text-slate-400 mt-2">PIC: ${reg.pic_nama || '—'} | ${reg.pic_tel || '—'}</div>
+            </div>`;
         }
     </script>
 </body>

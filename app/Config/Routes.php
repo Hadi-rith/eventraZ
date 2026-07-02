@@ -36,6 +36,7 @@ $routes->get('admin/programs/subs/(:segment)',              'Admin::getSubProgra
 $routes->get('admin/programs/capacity/(:num)',               'Admin::getProgramCapacity/$1');
 $routes->get('admin/programs/stats',                        'Admin::getProgramStats');
 $routes->get('admin/programs/stats/export',                 'Admin::exportProgramStats');
+$routes->get('admin/programs/stats/attendance',             'Admin::getProgramAttendanceStats'); // NEW ROUTE
 
 // Registration data
 $routes->get('admin/data',                                  'Admin::getAdminData');
@@ -89,3 +90,18 @@ $routes->get('awam/program-details/(:num)',                 'PublicPortal::getPr
 // Events page
 $routes->get('awam/events',                                 'PublicPortal::events');
 $routes->get('awam/events-data',                            'PublicPortal::getEvents');
+
+// ============================================================
+// ATTENDANCE MANAGEMENT
+// ============================================================
+
+// Admin / Super Admin
+$routes->get('admin/attendance',                            'AttendanceAdmin::index');
+$routes->post('admin/attendance/create',                    'AttendanceAdmin::create');
+$routes->post('admin/attendance/regenerate/(:num)',         'AttendanceAdmin::regenerate/$1');
+$routes->post('admin/attendance/toggle/(:num)',              'AttendanceAdmin::toggleStatus/$1');
+$routes->get('admin/attendance/records/(:num)',              'AttendanceAdmin::records/$1');
+
+// Participant-facing
+$routes->post('attendance/process-scan',                    'Attendance::processScan');
+$routes->get('attendance/checkin/(:segment)',                'Attendance::checkin/$1');

@@ -32,7 +32,6 @@ class Admin extends BaseController
     // Helpers — role / admin_id from session
     // ------------------------------------------------------------------
 
-    /** Returns the DB admin_id, or null for Super Admin. */
     private function getAdminId(): ?int
     {
         $id = $this->session->get('admin_id');
@@ -44,18 +43,11 @@ class Admin extends BaseController
         return $this->session->get('role') === 'super_admin';
     }
 
-    /**
-     * null = all programs (super admin); admin DB id = owned programs only.
-     */
     private function getProgramScopeAdminId(): ?int
     {
         return $this->isSuperAdmin() ? null : $this->getAdminId();
     }
 
-    /**
-     * Abort with 403 if the caller is not Super Admin.
-     * Returns the JSON response or null if access is allowed.
-     */
     private function requireSuperAdmin()
     {
         if (!$this->isSuperAdmin()) {
@@ -67,10 +59,6 @@ class Admin extends BaseController
         return null;
     }
 
-    /**
-     * Verify that a program belongs to the current admin.
-     * Super Admin can access any program.
-     */
     private function canAccessProgram(array $program): bool
     {
         if ($this->isSuperAdmin()) return true;
@@ -101,10 +89,6 @@ class Admin extends BaseController
         return view('admin_dashboard');
     }
 
-    /**
-     * GET /admin/dashboard-stats
-     * Returns role-appropriate statistics as JSON.
-     */
     public function getDashboardStats()
     {
         try {
@@ -113,7 +97,6 @@ class Admin extends BaseController
             if ($this->isSuperAdmin()) {
                 $stats = $programModel->getSuperAdminStats();
 
-                // Also include per-admin breakdown
                 $adminModel = new AdminAccountModel();
                 $stats['admins'] = $adminModel->getAllAdminStats();
 
@@ -129,10 +112,6 @@ class Admin extends BaseController
         }
     }
 
-    /**
-     * GET /admin/programs/stats
-     * Per-program event statistics for the admin dashboard.
-     */
     public function getProgramStats()
     {
         try {
@@ -149,9 +128,34 @@ class Admin extends BaseController
     }
 
     /**
-     * GET /admin/programs/stats/export?program_id=123 (optional — exports one program)
-     * CSV download compatible with Excel and Google Sheets.
+     * GET /admin/programs/stats/attendance
+     * Returns attendance statistics for programs
      */
+    public function getProgramAttendanceStats()
+    {
+        try {
+            $programModel = new ProgramModel();
+            $programId = $this->request->getGet('program_id');
+            
+            if ($programId) {
+                $stats = $programModel->getProgramEventStats((int) $programId);
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => $stats ? [$stats] : []
+                ]);
+            }
+            
+            $stats = $programModel->getAllProgramEventStats($this->getProgramScopeAdminId());
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $stats,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->serverErrorResponse($e, 'getProgramAttendanceStats');
+        }
+    }
+
     public function exportProgramStats()
     {
         try {
@@ -201,6 +205,11 @@ class Admin extends BaseController
                 'Awam Hadir',
                 'Awam Belum Hadir',
                 'Status Sekolah (Ringkasan)',
+                'Jumlah Daftar (Unik)',
+                'Jumlah Hadir',
+                'Kadar Kehadiran (%)',
+                'Sekolah Hadir',
+                'Awam Hadir (Sejarah)',
             ];
 
             $rows = [];
@@ -248,6 +257,11 @@ class Admin extends BaseController
                     $s['awam_hadir'],
                     $s['awam_belum_hadir'],
                     $statusSummary,
+                    $s['total_registered'] ?? 0,
+                    $s['total_attended'] ?? 0,
+                    $s['attendance_rate'] ?? 0,
+                    $s['school_attended'] ?? 0,
+                    $s['awam_attended'] ?? 0,
                 ];
             }
 
@@ -400,7 +414,6 @@ class Admin extends BaseController
                 ]);
             }
 
-            // Handle poster upload
             $posterPath = null;
             $posterFile = $this->request->getFile('poster_image');
             if ($posterFile && $posterFile->isValid() && !$posterFile->hasMoved()) {
@@ -500,7 +513,6 @@ class Admin extends BaseController
                 ]);
             }
 
-            // Admin can only create sub-programs under their own programs
             if (!$this->canAccessProgram($parent)) {
                 return $this->response->setStatusCode(403)->setJSON([
                     'success' => false,
@@ -630,7 +642,6 @@ class Admin extends BaseController
                 ]);
             }
 
-            // Handle poster upload
             $posterPath = $program['poster_image'] ?? null;
             $posterFile = $this->request->getFile('poster_image');
             if ($posterFile && $posterFile->isValid() && !$posterFile->hasMoved()) {
@@ -644,7 +655,6 @@ class Admin extends BaseController
                 $posterPath = 'uploads/posters/' . $newName;
             }
 
-            // parent_id handling
             $parentCodeRaw      = $this->request->getPost('parent_code');
             $parentCodeProvided = ($parentCodeRaw !== null);
             $parentCode         = $parentCodeProvided ? strtoupper(trim((string) $parentCodeRaw)) : null;
@@ -763,7 +773,6 @@ class Admin extends BaseController
                 $sekolahRows = $sekolahModel->orderBy('created_at', 'DESC')->findAll();
                 $awamRows    = $awamModel->orderBy('created_at', 'DESC')->findAll();
             } else {
-                // Scope to programs owned by this admin
                 $programModel = new ProgramModel();
                 $programs     = $programModel->where('admin_id', $this->getAdminId())->findAll();
                 $programIds   = array_column($programs, 'id');
@@ -780,7 +789,6 @@ class Admin extends BaseController
                 $awamRows    = $awamModel->whereIn('program_id', $programIds)->orderBy('created_at', 'DESC')->findAll();
             }
 
-            // Attach guru list to each school registration
             foreach ($sekolahRows as &$row) {
                 $row['guru'] = $guruModel->where('registration_id', $row['id'])->findAll();
             }
@@ -808,7 +816,6 @@ class Admin extends BaseController
                 ]);
             }
 
-            // Access check
             $programModel = new ProgramModel();
             $program      = $programModel->find($registration['program_id']);
             if ($program && !$this->canAccessProgram($program)) {
@@ -876,8 +883,7 @@ class Admin extends BaseController
     }
 
     // ------------------------------------------------------------------
-    // Account management — Super Admin only (for admin accounts)
-    // Regular admin CRUD (school/public) is accessible to all admins
+    // Account management
     // ------------------------------------------------------------------
 
     public function getAccounts()
@@ -892,11 +898,9 @@ class Admin extends BaseController
                 'public'  => $publicModel->orderBy('name', 'ASC')->findAll(),
             ];
 
-            // Super Admin also gets the list of admin accounts
             if ($this->isSuperAdmin()) {
                 $adminModel = new AdminAccountModel();
                 $admins = $adminModel->orderBy('name', 'ASC')->findAll();
-                // Strip passwords from output
                 foreach ($admins as &$a) unset($a['password']);
                 $data['admins'] = $admins;
             }
@@ -991,7 +995,7 @@ class Admin extends BaseController
     }
 
     // ------------------------------------------------------------------
-    // Events (alias — same as getProgramList for the events tab)
+    // Events (alias)
     // ------------------------------------------------------------------
 
     public function getEvents()
@@ -1079,7 +1083,7 @@ class Admin extends BaseController
     }
 
     // ------------------------------------------------------------------
-    // Capacity endpoint (used by registration forms)
+    // Capacity endpoint
     // ------------------------------------------------------------------
 
     public function getProgramCapacity(int $programId)
@@ -1468,23 +1472,6 @@ class Admin extends BaseController
                 'bilMurid'    => $row['bil_murid'],
                 'guru'        => $row['guru'] ?? [],
                 'status'      => $row['status'],
-            ];
-        }
-        return $result;
-    }
-
-    private function formatLuarData(array $rows): array
-    {
-        $result = [];
-        foreach ($rows as $row) {
-            $result[] = [
-                'id'          => $row['id'],
-                'timestamp'   => date('d/m/Y H:i', strtotime($row['created_at'])),
-                'program'     => $row['program_name'],
-                'namaSekolah' => $row['nama_sekolah'],
-                'kodSekolah'  => $row['kod_sekolah'],
-                'tel'         => $row['tel'],
-                'email'       => $row['email'],
             ];
         }
         return $result;

@@ -116,7 +116,6 @@ class ProgramModel extends Model
                       ->get()->getRowArray();
         $awam = (int) ($awamRow['cnt'] ?? 0) + (int) ($awamRow['ahli_sum'] ?? 0);
 
-        // daftar_luar table not yet created — skip
         return $school + $awam;
     }
 
@@ -135,7 +134,7 @@ class ProgramModel extends Model
     }
 
     // ------------------------------------------------------------------
-    // Public / school events visibility (hide ended events after 7 days)
+    // Public / school events visibility
     // ------------------------------------------------------------------
 
     public function getPublicVisibilityCutoff(): string
@@ -143,9 +142,6 @@ class ProgramModel extends Model
         return date('Y-m-d', strtotime('-7 days'));
     }
 
-    /**
-     * Events ended more than 7 days ago are hidden from public & school event pages.
-     */
     public function isVisibleOnPublicViews(array $program): bool
     {
         $endDate = $program['end_date'] ?? null;
@@ -156,7 +152,7 @@ class ProgramModel extends Model
     }
 
     // ------------------------------------------------------------------
-    // Per-program event statistics
+    // Per-program event statistics with attendance
     // ------------------------------------------------------------------
 
     public function getProgramEventStats(int $programId): ?array
@@ -206,6 +202,60 @@ class ProgramModel extends Model
             }
         }
 
+        // Get actual attendance from attendance_records, scoped to THIS program's
+        // attendance sessions (join on event_id) rather than counted globally.
+
+        // Public (awam): attendance_records.user_key stores the public_accounts.id
+        // of the logged-in participant — daftar_awam has no public_id column, only
+        // email — so we match via public_accounts.email.
+        $attendedPublicAccountIds = array_column(
+            $db->table('attendance_records ar')
+                ->select('ar.user_key')
+                ->join('attendance_sessions ats', 'ats.id = ar.session_id')
+                ->where('ats.event_id', $programId)
+                ->where('ar.user_type', 'public')
+                ->get()->getResultArray(),
+            'user_key'
+        );
+
+        $attendedEmails = [];
+        if (!empty($attendedPublicAccountIds)) {
+            $attendedEmails = array_column(
+                $db->table('public_accounts')
+                    ->select('email')
+                    ->whereIn('id', $attendedPublicAccountIds)
+                    ->get()->getResultArray(),
+                'email'
+            );
+            $attendedEmails = array_flip($attendedEmails); // for fast isset() lookups
+        }
+
+        $actualAttended = 0;
+        foreach ($awamRegs as $r) {
+            if (isset($attendedEmails[$r['email']])) {
+                $actualAttended++;
+            }
+        }
+
+        // School: attendance_records.user_key stores school_code directly, which
+        // IS the natural key shared with daftar_sekolah.kod_sekolah, so this one
+        // can compare directly — but still needs the empty-array guard and the
+        // event_id scoping.
+        $schoolCodes = array_column($sekolahRegs, 'kod_sekolah');
+        $schoolAttendance = 0;
+        if (!empty($schoolCodes)) {
+            $attendedSchoolCodes = array_column(
+                $db->table('attendance_records ar')
+                    ->select('ar.user_key')
+                    ->join('attendance_sessions ats', 'ats.id = ar.session_id')
+                    ->where('ats.event_id', $programId)
+                    ->where('ar.user_type', 'school')
+                    ->get()->getResultArray(),
+                'user_key'
+            );
+            $schoolAttendance = count(array_intersect($schoolCodes, $attendedSchoolCodes));
+        }
+
         $schoolStatusCounts = [];
         foreach ($sekolahRegs as $r) {
             $st = $r['status'] ?? 'Baru';
@@ -224,6 +274,9 @@ class ProgramModel extends Model
         } elseif (($program['start_date'] ?? '') <= $today) {
             $eventStatus = 'ongoing';
         }
+
+        $totalRegistered = $sekolahCount + $awamRegCount;
+        $totalAttended = $schoolAttendance + $actualAttended;
 
         return [
             'program_id'            => (int) $program['id'],
@@ -251,6 +304,11 @@ class ProgramModel extends Model
             'awam_belum_hadir'      => $belumHadirCount,
             'school_status_breakdown' => $schoolStatusCounts,
             'parent_id'             => $program['parent_id'],
+            'total_registered'      => $totalRegistered,
+            'total_attended'        => $totalAttended,
+            'school_attended'       => $schoolAttendance,
+            'awam_attended'         => $actualAttended,
+            'attendance_rate'       => $totalRegistered > 0 ? round(($totalAttended / $totalRegistered) * 100, 1) : 0,
         ];
     }
 
